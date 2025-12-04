@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
-import { toHex, decodeEventLog, encodeAbiParameters } from 'viem'
+import { toHex, decodeEventLog, encodeAbiParameters, type Abi } from 'viem'
 import { toast } from 'sonner'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -20,9 +20,10 @@ import {
   autoMove,
   encodeMoves,
 } from '@/lib/games/snake'
-import SnakeABI from '@/lib/web3/SnakeABI.json'
+import SnakeABIJson from '@/lib/web3/SnakeABI.json'
 import { saveScoreWithVerification } from '@/lib/supabase/client'
 
+const SnakeABI = SnakeABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_SNAKE_CONTRACT_ADDRESS as `0x${string}`
 
 type TransactionState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
@@ -54,6 +55,7 @@ export default function SnakePage() {
           address: CONTRACT_ADDRESS,
           abi: SnakeABI,
           functionName: 'gameFee',
+          args: [],
         }) as bigint
 
         setGameFee(fee)
@@ -163,10 +165,10 @@ export default function SnakePage() {
                 abi: SnakeABI,
                 data: log.data,
                 topics: log.topics,
-              })
+              }) as any
 
               if (decoded.eventName === 'GameStarted') {
-                const gameId = (decoded.args as any).gameId
+                const gameId = decoded.args.gameId
 
                 setActiveGameId(gameId)
                 setGameState(pendingState)
@@ -309,7 +311,24 @@ export default function SnakePage() {
         e.preventDefault()
         setGameState(prevState => {
           if (!prevState || prevState.gameOver) return prevState
-          return makeMove(prevState, direction!)
+
+          
+          
+          
+          const opposites: { [key in Direction]: Direction } = {
+            'UP': 'DOWN',
+            'DOWN': 'UP',
+            'LEFT': 'RIGHT',
+            'RIGHT': 'LEFT',
+          }
+
+          if (opposites[prevState.direction] !== direction) {
+            return {
+              ...prevState,
+              nextDirection: direction
+            }
+          }
+          return prevState
         })
       }
     }

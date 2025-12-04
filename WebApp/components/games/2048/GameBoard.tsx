@@ -30,7 +30,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
   const [direction, setDirection] = useState<string | null>(null)
   const [pressedKey, setPressedKey] = useState<string | null>(null)
 
-  // Convert board to tile data
+  
   useEffect(() => {
     const newTiles: TileData[] = []
     for (let row = 0; row < GRID_SIZE; row++) {
@@ -49,7 +49,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
     setTiles(newTiles)
   }, [board])
 
-  // Listen for arrow keys to show visual feedback
+  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       let dir = null
@@ -110,7 +110,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Main game board container */}
+      {}
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -123,7 +123,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
           border: '2px solid hsl(var(--border))',
         }}
       >
-        {/* Grid background cells */}
+        {}
         <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 16 }).map((_, index) => (
             <div
@@ -137,7 +137,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
           ))}
         </div>
 
-        {/* Direction indicator */}
+        {}
         <AnimatePresence>
           {direction && (
             <motion.div
@@ -161,7 +161,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
           )}
         </AnimatePresence>
 
-        {/* Animated tiles layer */}
+        {}
         <div className="absolute inset-4">
           {tiles.map((tile) => {
             const x = tile.col * (CELL_SIZE + CELL_GAP)
@@ -205,7 +205,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
           })}
         </div>
 
-        {/* Game Over Overlay - Right on the board */}
+        {}
         <AnimatePresence>
           {gameOver && !isReplay && (
             <motion.div
@@ -268,7 +268,7 @@ export function GameBoard({ board, gameOver, won, score, onNewGame, onSubmit, is
         </AnimatePresence>
       </motion.div>
 
-      {/* Keyboard hints with press feedback - hide during replay */}
+      {}
       {!isReplay && (
         <div className="flex flex-wrap justify-center gap-6">
           <motion.div

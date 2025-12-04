@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { usePublicClient } from 'wagmi'
+import { type Abi } from 'viem'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -19,8 +20,9 @@ import {
   boardToSeed,
   SeededRandom,
 } from '@/lib/games/2048'
-import Game2048ABI from '@/lib/web3/Game2048ABI.json'
+import Game2048ABIJson from '@/lib/web3/Game2048ABI.json'
 
+const Game2048ABI = Game2048ABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_GAME2048_CONTRACT_ADDRESS as `0x${string}`
 
 export default function Game2048ReplayPage() {
@@ -62,14 +64,13 @@ export default function Game2048ReplayPage() {
         const initialBoardData_array = initialBoardData as bigint[]
         const boardArray = initialBoardData_array.map(Number)
 
-        const seed = Number(startTime) * 1000
-
         const moves = decodeMoves(movesBytes)
         setAllMoves(moves)
 
         const board = arrayToBoard(boardArray)
         setInitialBoard(board)
 
+        const seed = boardToSeed(board)
         const rng = new SeededRandom(seed)
 
         rng.next()
@@ -342,7 +343,7 @@ export default function Game2048ReplayPage() {
                     </label>
                     <input
                       type="range"
-                      min="100"
+                      min="50"
                       max="2000"
                       step="100"
                       value={playbackSpeed}

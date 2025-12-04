@@ -74,10 +74,10 @@ export function initializeGame(seed?: number, level: Level = 3): GameState {
 
   const cardValues = [...selectedEmojis, ...selectedEmojis]
 
-  // Add placeholder cards if needed to fill the grid
+  
   const cardsNeeded = config.gridSize - cardValues.length
   for (let i = 0; i < cardsNeeded; i++) {
-    cardValues.push('') // Empty placeholder
+    cardValues.push('') 
   }
 
   for (let i = cardValues.length - 1; i > 0; i--) {
@@ -116,7 +116,7 @@ export function flipCard(state: GameState, cardIndex: number): GameState {
   if (state.cards[cardIndex].isMatched) return state
   if (state.cards[cardIndex].isFlipped) return state
 
-  // Don't allow flipping placeholder cards (empty values)
+  
   if (!state.cards[cardIndex].value) return state
 
   const config = LEVEL_CONFIG[state.level]
@@ -201,14 +201,14 @@ export function unflipCards(state: GameState): GameState {
 export function useHint(state: GameState): GameState {
   if (state.hintsRemaining <= 0 || state.gameOver) return state
 
-  // Get unmatched cards that aren't currently flipped
+  
   const unmatchedCards = state.cards
     .map((card, index) => ({ card, index }))
     .filter(({ card }) => !card.isMatched && !card.isFlipped)
 
   if (unmatchedCards.length === 0) return state
 
-  // Randomly select up to 5 unmatched cards to reveal
+  
   const cardsToReveal = Math.min(5, unmatchedCards.length)
   const shuffled = [...unmatchedCards].sort(() => Math.random() - 0.5)
   const selectedIndices = shuffled.slice(0, cardsToReveal).map(({ index }) => index)
@@ -236,15 +236,25 @@ export function encodeMoves(moves: Move[]): Uint8Array {
   return buffer
 }
 
-export function decodeMoves(encoded: string | `0x${string}`): Move[] {
-  if (!encoded || encoded === '0x') return []
+export function decodeMoves(encoded: string | `0x${string}` | Uint8Array): Move[] {
+  if (!encoded) return []
 
-  const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded
   const moves: Move[] = []
 
-  for (let i = 0; i < hex.length; i += 2) {
-    const byte = parseInt(hex.substring(i, i + 2), 16)
-    moves.push({ cardIndex: byte, timestamp: 0 })
+  if (encoded instanceof Uint8Array) {
+    
+    for (let i = 0; i < encoded.length; i += 2) {
+      moves.push({ cardIndex: encoded[i], timestamp: 0 })
+    }
+  } else if (encoded === '0x') {
+    return []
+  } else if (typeof encoded === 'string') {
+    const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded
+    
+    for (let i = 0; i < hex.length; i += 4) {
+      const byte = parseInt(hex.substring(i, i + 2), 16)
+      moves.push({ cardIndex: byte, timestamp: 0 })
+    }
   }
 
   return moves
@@ -252,7 +262,7 @@ export function decodeMoves(encoded: string | `0x${string}`): Move[] {
 
 export function gridToArray(cards: Card[], gridSize: number): number[] {
   return cards.slice(0, gridSize).map(card => {
-    if (!card.value) return 0 // Placeholder
+    if (!card.value) return 0 
     const themeKeys = Object.keys(THEMES) as Array<keyof typeof THEMES>
     for (const theme of themeKeys) {
       const index = THEMES[theme].indexOf(card.value)
@@ -271,13 +281,5 @@ export function arrayToGrid(arr: number[], theme: string): Card[] {
     isMatched: false
   }))
 
-  const placeholder: Card = {
-    id: -1,
-    value: '',
-    isFlipped: false,
-    isMatched: true
-  }
-
-  cards.push(placeholder)
   return cards
 }

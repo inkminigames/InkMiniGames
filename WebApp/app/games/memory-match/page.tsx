@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
-import { toHex, decodeEventLog, encodeAbiParameters } from 'viem'
+import { toHex, decodeEventLog, encodeAbiParameters, type Abi } from 'viem'
 import { toast } from 'sonner'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -27,8 +27,8 @@ import {
 import MemoryMatchArtifact from '@/lib/web3/MemoryMatchABI.json'
 import { saveScoreWithVerification } from '@/lib/supabase/client'
 
-const MemoryMatchABI = MemoryMatchArtifact.abi
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_MEMORYMATCH_CONTRACT_ADDRESS as `0x${string}`
+const MemoryMatchABI = (MemoryMatchArtifact as any).abi as Abi
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_MEMORY_MATCH_CONTRACT_ADDRESS as `0x${string}`
 
 type TransactionState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
 
@@ -64,6 +64,7 @@ export default function MemoryMatchPage() {
           address: CONTRACT_ADDRESS,
           abi: MemoryMatchABI,
           functionName: 'gameFee',
+          args: [],
         }) as bigint
 
         setGameFee(fee)
@@ -185,10 +186,10 @@ export default function MemoryMatchPage() {
                 abi: MemoryMatchABI,
                 data: log.data,
                 topics: log.topics,
-              })
+              }) as any
 
               if (decoded.eventName === 'GameStarted') {
-                const gameId = (decoded.args as any).gameId
+                const gameId = decoded.args.gameId
 
                 setActiveGameId(gameId)
                 setGameState(pendingGameState)
@@ -281,7 +282,7 @@ export default function MemoryMatchPage() {
     if (!gameState || gameState.gameOver) return
     if (gameState.flippedCards.length >= 2) return
 
-    // Clear hints when user clicks a card
+    
     let stateToUse = gameState
     if (gameState.hintedCards.length > 0) {
       stateToUse = clearHints(gameState)
@@ -314,7 +315,7 @@ export default function MemoryMatchPage() {
     const newState = useHint(gameState)
     setGameState(newState)
 
-    // Auto-clear hints after 3 seconds
+    
     setTimeout(() => {
       setGameState(prevState => prevState ? clearHints(prevState) : prevState)
     }, 3000)
@@ -397,7 +398,7 @@ export default function MemoryMatchPage() {
                     <div className="text-center p-8">
                       <h3 className="text-3xl mb-6 gradient-text">Ready to Play?</h3>
 
-                      {/* Level Selection */}
+                      {}
                       <div className="mb-8">
                         <h4 className="text-lg font-semibold mb-4">Select Difficulty</h4>
                         <div className="flex justify-center gap-4">

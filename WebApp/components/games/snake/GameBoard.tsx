@@ -16,11 +16,11 @@ interface GameBoardProps {
 export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isReplay = false }: GameBoardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { width: BOARD_WIDTH, height: BOARD_HEIGHT } = getBoardDimensions()
-  const CELL_SIZE = 30 // Increased from 25
+  const CELL_SIZE = 30 
   const CANVAS_WIDTH = BOARD_WIDTH * CELL_SIZE
   const CANVAS_HEIGHT = BOARD_HEIGHT * CELL_SIZE
 
-  // Draw the game board
+  
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -28,11 +28,11 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Clear canvas with dark background
+    
     ctx.fillStyle = '#0a0a0a'
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
-    // Draw grid
+    
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
     ctx.lineWidth = 1
     for (let x = 0; x <= BOARD_WIDTH; x++) {
@@ -48,11 +48,11 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
       ctx.stroke()
     }
 
-    // Draw food with pulsing effect
+    
     const food = gameState.food
     const pulse = Math.sin(Date.now() / 200) * 0.2 + 0.8
 
-    // Outer glow
+    
     const gradient = ctx.createRadialGradient(
       food.x * CELL_SIZE + CELL_SIZE / 2,
       food.y * CELL_SIZE + CELL_SIZE / 2,
@@ -74,7 +74,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
     )
     ctx.fill()
 
-    // Inner food
+    
     ctx.fillStyle = '#ef4444'
     ctx.beginPath()
     ctx.arc(
@@ -86,18 +86,18 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
     )
     ctx.fill()
 
-    // Draw snake with rounded segments and gradient
+    
     gameState.snake.forEach((segment: Position, index: number) => {
       const isHead = index === 0
       const isTail = index === gameState.snake.length - 1
 
-      // Calculate gradient color based on position in snake
+      
       const progress = index / Math.max(gameState.snake.length - 1, 1)
-      const hue = 270 // Purple hue
-      const saturation = 71 - progress * 20 // Fade saturation
-      const lightness = 59 - progress * 20 // Fade lightness
+      const hue = 270 
+      const saturation = 71 - progress * 20 
+      const lightness = 59 - progress * 20 
 
-      // Main body segment with rounded corners
+      
       ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`
       ctx.beginPath()
       const padding = 2
@@ -107,7 +107,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
       const width = CELL_SIZE - padding * 2
       const height = CELL_SIZE - padding * 2
 
-      // Rounded rectangle
+      
       ctx.moveTo(x + radius, y)
       ctx.lineTo(x + width - radius, y)
       ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
@@ -120,7 +120,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
       ctx.closePath()
       ctx.fill()
 
-      // Add highlight to head
+      
       if (isHead) {
         const highlightGradient = ctx.createLinearGradient(
           x, y, x, y + height
@@ -131,7 +131,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
         ctx.fill()
       }
 
-      // Draw eyes on head
+      
       if (isHead) {
         ctx.fillStyle = '#1a1a1a'
         const eyeSize = 4
@@ -169,7 +169,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
             break
         }
 
-        // Draw eyes with white shine
+        
         ctx.beginPath()
         ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, 2 * Math.PI)
         ctx.fill()
@@ -177,7 +177,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
         ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, 2 * Math.PI)
         ctx.fill()
 
-        // Add shine to eyes
+        
         ctx.fillStyle = '#ffffff'
         ctx.beginPath()
         ctx.arc(leftEyeX - 1, leftEyeY - 1, 1.5, 0, 2 * Math.PI)
@@ -187,7 +187,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
         ctx.fill()
       }
 
-      // Draw tail end as smaller rounded segment
+      
       if (isTail && gameState.snake.length > 1) {
         const tailPadding = 6
         ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness - 10}%)`
@@ -206,7 +206,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Score and Level Display */}
+      {}
       <div className="flex gap-8 items-center">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -236,7 +236,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
         </motion.div>
       </div>
 
-      {/* Main game board container */}
+      {}
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -247,7 +247,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
           border: '2px solid hsl(var(--border))',
         }}
       >
-        {/* Canvas for game rendering */}
+        {}
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
@@ -255,7 +255,7 @@ export function GameBoard({ gameState, gameOver, score, onNewGame, onSubmit, isR
           className="rounded-xl border-2 border-border/50"
         />
 
-        {/* Game Over Overlay */}
+        {}
         <AnimatePresence>
           {gameOver && !isReplay && (
             <motion.div

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { usePublicClient } from 'wagmi'
+import { type Abi, decodeAbiParameters } from 'viem'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -17,8 +18,9 @@ import {
   makeMove,
   decodeMoves,
 } from '@/lib/games/tetris'
-import TetrisABI from '@/lib/web3/TetrisABI.json'
+import TetrisABIJson from '@/lib/web3/TetrisABI.json'
 
+const TetrisABI = TetrisABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TETRIS_CONTRACT_ADDRESS as `0x${string}`
 
 export default function TetrisReplayPage() {
@@ -49,14 +51,26 @@ export default function TetrisReplayPage() {
           args: [BigInt(gameId)],
         }) as any
 
-        // Result is a tuple: [player, initialState, startTime, endTime, finalScore, moves, state]
+        
         const [player, initialStateBytes, startTime, endTime, finalScore, movesBytes, state] = result
 
         if (player === '0x0000000000000000000000000000000000000000') {
           throw new Error('Game not found or does not exist')
         }
 
-        const seed = Number(initialStateBytes)
+        
+        let seed: number
+        if (typeof initialStateBytes === 'string' && initialStateBytes.startsWith('0x')) {
+          
+          const decoded = decodeAbiParameters(
+            [{ type: 'string' }],
+            initialStateBytes as `0x${string}`
+          )
+          seed = Number(decoded[0])
+        } else {
+          
+          seed = Number(initialStateBytes)
+        }
 
         const moves = decodeMoves(movesBytes)
         setAllMoves(moves)
@@ -83,7 +97,7 @@ export default function TetrisReplayPage() {
       return
     }
 
-    if (currentMoveIndex >= allMoves.length) {
+    if (gameState.gameOver || currentMoveIndex >= allMoves.length) {
       setIsPlaying(false)
       return
     }
@@ -102,7 +116,7 @@ export default function TetrisReplayPage() {
   }, [isPlaying, gameState, playbackSpeed, currentMoveIndex, allMoves])
 
   const handleStepForward = () => {
-    if (!gameState || currentMoveIndex >= allMoves.length) return
+    if (!gameState || gameState.gameOver || currentMoveIndex >= allMoves.length) return
     const nextMove = allMoves[currentMoveIndex]
     const newState = makeMove(gameState, nextMove)
     setGameState(newState)
@@ -203,7 +217,7 @@ export default function TetrisReplayPage() {
                     isReplay={true}
                   />
 
-                  {currentMoveIndex >= allMoves.length && (
+                  {(gameState.gameOver || currentMoveIndex >= allMoves.length) && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -224,6 +238,9 @@ export default function TetrisReplayPage() {
                           </p>
                           <p className="text-xl text-muted-foreground">
                             Lines: {gameState.lines} • Level: {gameState.level}
+                          </p>
+                          <p className="text-xl text-muted-foreground">
+                            Moves: {currentMoveIndex} / {allMoves.length}
                           </p>
                           {gameState.gameOver && (
                             <p className="text-lg text-red-400 mt-2">Game Over</p>
@@ -275,7 +292,7 @@ export default function TetrisReplayPage() {
                     </Button>
                     <Button
                       onClick={handleStepForward}
-                      disabled={!gameState || (currentMoveIndex >= allMoves.length && gameState.gameOver)}
+                      disabled={!gameState || gameState.gameOver || currentMoveIndex >= allMoves.length}
                       variant="outline"
                       size="sm"
                       className="flex-1"
@@ -290,7 +307,7 @@ export default function TetrisReplayPage() {
                     </label>
                     <input
                       type="range"
-                      min="100"
+                      min="50"
                       max="1000"
                       step="50"
                       value={playbackSpeed}

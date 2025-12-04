@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabasePublishableKey)
 
 export type UserScore = {
   id: string
@@ -31,59 +31,25 @@ export async function saveScoreWithVerification(
 
   while (attempt < maxRetries) {
     try {
-      // First check if the score already exists (check by transaction hash first)
-      const { data: existingByTxHash } = await supabase
-        .from('user_scores')
-        .select('*')
-        .eq('transaction_hash', data.transaction_hash)
-        .maybeSingle()
+      const response = await fetch('/api/save-score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
 
-      if (existingByTxHash) {
+      const result = await response.json()
+
+      if (response.ok && result.success) {
         return { success: true }
       }
 
-      // Check by the unique constraint: (wallet_address, game_type, game_id_onchain)
-      const { data: existingByGameId } = await supabase
-        .from('user_scores')
-        .select('*')
-        .eq('wallet_address', data.wallet_address)
-        .eq('game_type', data.game_type)
-        .eq('game_id_onchain', data.game_id_onchain)
-        .maybeSingle()
-
-      if (existingByGameId) {
-        // This exact game already exists
-        return { success: true }
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save score')
       }
 
-      const { error: insertError } = await supabase
-        .from('user_scores')
-        .insert(data)
-
-      if (insertError) {
-        throw new Error(`Failed to insert score: ${insertError.message}`)
-      }
-
-      // Verify the insert
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('user_scores')
-        .select('*')
-        .eq('wallet_address', data.wallet_address)
-        .eq('game_type', data.game_type)
-        .eq('game_id_onchain', data.game_id_onchain)
-        .eq('transaction_hash', data.transaction_hash)
-        .single()
-
-      if (verifyError || !verifyData) {
-        attempt++
-
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
-        }
-        continue
-      }
-
-      return { success: true }
+      return { success: false, error: result.error || 'Unknown error' }
 
     } catch (error: any) {
       attempt++

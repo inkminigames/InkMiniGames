@@ -1,10 +1,10 @@
-// 2048 Game Logic
+
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
 export type Board = number[][]
 export type Move = Direction
 
-// Seeded RNG for deterministic gameplay
+
 export class SeededRandom {
   private seed: number
 
@@ -32,11 +32,11 @@ export interface GameState {
   moves: Move[]
   gameOver: boolean
   won: boolean
-  rng?: SeededRandom // For deterministic tile placement
-  seed?: number // Initial seed for replay
+  rng?: SeededRandom 
+  seed?: number 
 }
 
-// Initialize a 4x4 board with two random tiles using a seed
+
 export function initializeBoard(seed?: number): Board {
   const gameSeed = seed || Date.now()
   const rng = new SeededRandom(gameSeed)
@@ -46,7 +46,7 @@ export function initializeBoard(seed?: number): Board {
   return board
 }
 
-// Add a random tile (90% chance of 2, 10% chance of 4) using seeded RNG
+
 function addRandomTile(board: Board, rng: SeededRandom): boolean {
   const emptyTiles: [number, number][] = []
 
@@ -65,7 +65,7 @@ function addRandomTile(board: Board, rng: SeededRandom): boolean {
   return true
 }
 
-// Move tiles in a direction
+
 export function move(board: Board, direction: Direction): { board: Board; score: number; moved: boolean } {
   const newBoard = board.map(row => [...row])
   let score = 0
@@ -119,16 +119,16 @@ export function move(board: Board, direction: Direction): { board: Board; score:
   return { board: newBoard, score, moved }
 }
 
-// Merge a line (row or column)
+
 function mergeLine(line: number[]): { line: number[]; score: number; moved: boolean } {
   const original = [...line]
 
-  // Remove zeros
+  
   let newLine = line.filter(val => val !== 0)
   let score = 0
   let moved = false
 
-  // Merge adjacent equal tiles
+  
   for (let i = 0; i < newLine.length - 1; i++) {
     if (newLine[i] === newLine[i + 1]) {
       newLine[i] *= 2
@@ -137,34 +137,34 @@ function mergeLine(line: number[]): { line: number[]; score: number; moved: bool
     }
   }
 
-  // Fill with zeros
+  
   while (newLine.length < 4) {
     newLine.push(0)
   }
 
-  // Check if anything changed
+  
   moved = JSON.stringify(original) !== JSON.stringify(newLine)
 
   return { line: newLine, score, moved }
 }
 
-// Check if game is over (no moves possible)
+
 export function isGameOver(board: Board): boolean {
-  // Check for empty tiles
+  
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 4; j++) {
       if (board[i][j] === 0) return false
     }
   }
 
-  // Check for possible merges horizontally
+  
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 3; j++) {
       if (board[i][j] === board[i][j + 1]) return false
     }
   }
 
-  // Check for possible merges vertically
+  
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 4; j++) {
       if (board[i][j] === board[i + 1][j]) return false
@@ -174,7 +174,7 @@ export function isGameOver(board: Board): boolean {
   return true
 }
 
-// Check if player won (reached 2048)
+
 export function hasWon(board: Board): boolean {
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 4; j++) {
@@ -184,7 +184,7 @@ export function hasWon(board: Board): boolean {
   return false
 }
 
-// Make a move and update game state
+
 export function makeMove(state: GameState, direction: Direction): GameState {
   if (state.gameOver) return state
 
@@ -192,21 +192,21 @@ export function makeMove(state: GameState, direction: Direction): GameState {
 
   if (!moved) return state
 
-  // Ensure we have an RNG - create one from seed or current state
+  
   let rng = state.rng
   if (!rng) {
-    // If no RNG exists, create one from seed or use a default
+    
     const seed = state.seed || Date.now()
     rng = new SeededRandom(seed)
 
-    // Advance RNG to current state based on number of moves
-    // Each move uses the RNG twice (position and value)
+    
+    
     for (let i = 0; i < state.moves.length * 2; i++) {
       rng.next()
     }
   }
 
-  // Add random tile using seeded RNG
+  
   const boardWithNewTile = newBoard.map(row => [...row])
   addRandomTile(boardWithNewTile, rng)
 
@@ -226,12 +226,12 @@ export function makeMove(state: GameState, direction: Direction): GameState {
   }
 }
 
-// Convert board to flat array for smart contract
+
 export function boardToArray(board: Board): number[] {
   return board.flat()
 }
 
-// Convert flat array to board
+
 export function arrayToBoard(arr: number[]): Board {
   const board: Board = []
   for (let i = 0; i < 4; i++) {
@@ -240,20 +240,20 @@ export function arrayToBoard(arr: number[]): Board {
   return board
 }
 
-// Create a deterministic seed from a board state (for replays)
+
 export function boardToSeed(board: Board): number {
-  // Create a simple hash from the board state
+  
   let hash = 0
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 4; j++) {
       hash = ((hash << 5) - hash) + board[i][j]
-      hash = hash & hash // Convert to 32bit integer
+      hash = hash & hash 
     }
   }
-  return Math.abs(hash) || 1 // Ensure non-zero
+  return Math.abs(hash) || 1 
 }
 
-// Encode moves as bytes (for smart contract)
+
 export function encodeMoves(moves: Move[]): string {
   const moveMap: Record<Move, string> = {
     UP: '0',
@@ -264,20 +264,28 @@ export function encodeMoves(moves: Move[]): string {
   return moves.map(m => moveMap[m]).join('')
 }
 
-// Decode moves from bytes
-export function decodeMoves(encoded: string | `0x${string}`): Move[] {
-  if (!encoded || encoded === '0x') return []
 
-  let moveString = encoded
+export function decodeMoves(encoded: string | `0x${string}` | Uint8Array): Move[] {
+  if (!encoded) return []
 
-  // If it's hex encoded (starts with 0x), convert from hex to string
-  if (encoded.startsWith('0x')) {
-    const hex = encoded.slice(2)
-    // Convert hex pairs to characters
-    moveString = ''
-    for (let i = 0; i < hex.length; i += 2) {
-      const byte = parseInt(hex.substr(i, 2), 16)
-      moveString += String.fromCharCode(byte)
+  let moveString = ''
+
+  
+  if (encoded instanceof Uint8Array) {
+    moveString = Array.from(encoded).map(byte => String.fromCharCode(byte)).join('')
+  } else if (encoded === '0x') {
+    return []
+  } else if (typeof encoded === 'string') {
+    
+    if (encoded.startsWith('0x')) {
+      const hex = encoded.slice(2)
+      
+      for (let i = 0; i < hex.length; i += 2) {
+        const byte = parseInt(hex.substr(i, 2), 16)
+        moveString += String.fromCharCode(byte)
+      }
+    } else {
+      moveString = encoded
     }
   }
 

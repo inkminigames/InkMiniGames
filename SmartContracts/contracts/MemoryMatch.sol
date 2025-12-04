@@ -12,8 +12,6 @@ contract MemoryMatch is IMiniGamesOnInk, Ownable, ReentrancyGuard {
     using InkMiniGamesLibrary for mapping(address => uint256[]);
 
     uint256 public gameFee = 0.0001 ether;
-    uint256 public constant GRID_SIZE = 25;
-    uint256 public constant MAX_ATTEMPTS = 50;
 
     mapping(address => uint256[]) public playerGames;
     mapping(uint256 => InkMiniGamesLibrary.GameData) private gameSessions;

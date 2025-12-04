@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { usePublicClient } from 'wagmi'
+import { type Abi, decodeAbiParameters } from 'viem'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -15,11 +16,11 @@ import {
   Direction,
   initializeGame,
   makeMove,
-  autoMove,
   decodeMoves,
 } from '@/lib/games/snake'
-import SnakeABI from '@/lib/web3/SnakeABI.json'
+import SnakeABIJson from '@/lib/web3/SnakeABI.json'
 
+const SnakeABI = SnakeABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_SNAKE_CONTRACT_ADDRESS as `0x${string}`
 
 export default function SnakeReplayPage() {
@@ -34,7 +35,7 @@ export default function SnakeReplayPage() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(200)
-  const [moveQueue, setMoveQueue] = useState<Direction[]>([])
+  const [initialSeed, setInitialSeed] = useState<number>(0)
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -51,17 +52,30 @@ export default function SnakeReplayPage() {
           args: [BigInt(gameId)],
         }) as any
 
-        const [player, initialStateBytes, startTime, endTime, finalScore, movesBytes, state] = result
+        const [player, initialStateBytes, , , finalScore, movesBytes] = result
 
         if (player === '0x0000000000000000000000000000000000000000') {
           throw new Error('Game not found or does not exist')
         }
 
-        const seed = Number(initialStateBytes)
+        
+        let seed: number
+        if (typeof initialStateBytes === 'string' && initialStateBytes.startsWith('0x')) {
+          
+          const decoded = decodeAbiParameters(
+            [{ type: 'string' }],
+            initialStateBytes as `0x${string}`
+          )
+          seed = Number(decoded[0])
+        } else {
+          
+          seed = Number(initialStateBytes)
+        }
+
+        setInitialSeed(seed)
 
         const moves = decodeMoves(movesBytes)
         setAllMoves(moves)
-        setMoveQueue(moves)
 
         const initialState = initializeGame(seed)
         setGameState(initialState)
@@ -85,59 +99,45 @@ export default function SnakeReplayPage() {
       return
     }
 
+    if (currentMoveIndex >= allMoves.length) {
+      setIsPlaying(false)
+      return
+    }
+
     const timer = setTimeout(() => {
-      if (moveQueue.length > 0 && currentMoveIndex < allMoves.length) {
-        const nextMove = moveQueue[0]
-        const newState = makeMove(gameState, nextMove)
-
-        setMoveQueue(queue => queue.slice(1))
-        setCurrentMoveIndex(idx => idx + 1)
-        setGameState(newState)
-        return
-      }
-
       setGameState(prevState => {
         if (!prevState || prevState.gameOver) return prevState
-        return autoMove(prevState)
+        const nextMove = allMoves[currentMoveIndex]
+        return makeMove(prevState, nextMove)
       })
+      setCurrentMoveIndex(idx => idx + 1)
     }, playbackSpeed)
 
     return () => clearTimeout(timer)
-  }, [isPlaying, gameState, playbackSpeed, moveQueue, currentMoveIndex, allMoves.length])
+  }, [isPlaying, gameState, playbackSpeed, currentMoveIndex, allMoves])
 
   const handleStepForward = () => {
-    if (!gameState) return
+    if (!gameState || gameState.gameOver) return
 
-    if (currentMoveIndex < allMoves.length) {
-      const nextMove = allMoves[currentMoveIndex]
-      const newState = makeMove(gameState, nextMove)
-      setGameState(newState)
-      setCurrentMoveIndex(currentMoveIndex + 1)
-      setMoveQueue(queue => queue.slice(1))
-    } else if (!gameState.gameOver) {
-      const newState = autoMove(gameState)
-      setGameState(newState)
-    }
+    if (currentMoveIndex >= allMoves.length) return
+
+    const nextMove = allMoves[currentMoveIndex]
+    const newState = makeMove(gameState, nextMove)
+    setGameState(newState)
+    setCurrentMoveIndex(currentMoveIndex + 1)
   }
 
   const handleStepBackward = () => {
-    if (!gameState || currentMoveIndex === 0) return
-    let state = initializeGame(gameState.seed)
-
-    for (let i = 0; i < currentMoveIndex - 1; i++) {
-      state = makeMove(state, allMoves[i])
-    }
-    setGameState(state)
-    setCurrentMoveIndex(currentMoveIndex - 1)
-    setMoveQueue(allMoves.slice(currentMoveIndex - 1))
+    
+    
+    handleReset()
   }
 
   const handleReset = () => {
-    if (!gameState) return
-    const initialState = initializeGame(gameState.seed)
+    if (!initialSeed) return
+    const initialState = initializeGame(initialSeed)
     setGameState(initialState)
     setCurrentMoveIndex(0)
-    setMoveQueue(allMoves)
     setIsPlaying(false)
   }
 
@@ -200,8 +200,11 @@ export default function SnakeReplayPage() {
             <h1 className="text-5xl md:text-6xl mb-4 gradient-text">
               Snake Replay
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-muted-foreground mb-2">
               Game #{gameId}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+              Note: Games created after the latest update include complete step-by-step replay. Older games may only show direction changes.
             </p>
           </motion.div>
 
@@ -261,7 +264,7 @@ export default function SnakeReplayPage() {
                   <div className="flex items-center justify-between gap-2">
                     <Button
                       onClick={handleReset}
-                      disabled={currentMoveIndex === 0}
+                      disabled={!gameState}
                       variant="outline"
                       size="sm"
                       className="flex-1"
@@ -270,10 +273,11 @@ export default function SnakeReplayPage() {
                     </Button>
                     <Button
                       onClick={handleStepBackward}
-                      disabled={currentMoveIndex === 0}
+                      disabled={true}
                       variant="outline"
                       size="sm"
                       className="flex-1"
+                      title="Rewind not available for Snake - use Reset instead"
                     >
                       ← Step
                     </Button>
@@ -302,7 +306,7 @@ export default function SnakeReplayPage() {
                     </label>
                     <input
                       type="range"
-                      min="100"
+                      min="50"
                       max="1000"
                       step="50"
                       value={playbackSpeed}

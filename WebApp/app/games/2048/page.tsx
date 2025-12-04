@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
-import { parseEther, toHex, decodeEventLog, encodeAbiParameters } from 'viem'
+import { parseEther, toHex, decodeEventLog, encodeAbiParameters, type Abi } from 'viem'
 import { toast } from 'sonner'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -22,9 +22,10 @@ import {
   SeededRandom,
   boardToSeed,
 } from '@/lib/games/2048'
-import Game2048ABI from '@/lib/web3/Game2048ABI.json'
+import Game2048ABIJson from '@/lib/web3/Game2048ABI.json'
 import { saveScoreWithVerification } from '@/lib/supabase/client'
 
+const Game2048ABI = Game2048ABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_GAME2048_CONTRACT_ADDRESS as `0x${string}`
 
 type TransactionState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
@@ -45,6 +46,7 @@ export default function Game2048Page() {
   const [gameFee, setGameFee] = useState<bigint | null>(null)
   const [showHowToPlay, setShowHowToPlay] = useState(true)
   const [isSavingToDb, setIsSavingToDb] = useState(false)
+  const [processedTxHash, setProcessedTxHash] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchGameFee = async () => {
@@ -55,6 +57,7 @@ export default function Game2048Page() {
           address: CONTRACT_ADDRESS,
           abi: Game2048ABI,
           functionName: 'gameFee',
+          args: [],
         }) as bigint
 
         setGameFee(fee)
@@ -77,12 +80,14 @@ export default function Game2048Page() {
     setStartTxState('idle')
     setSubmitTxState('idle')
     setActiveGameId(null)
+    setProcessedTxHash(null)
     resetWrite()
 
-    const seed = Date.now()
-    const board = initializeBoard(seed)
+    const initialSeed = Date.now()
+    const board = initializeBoard(initialSeed)
     const initialBoardArray = boardToArray(board)
 
+    const seed = boardToSeed(board)
     const rng = new SeededRandom(seed)
     rng.next()
     rng.next()
@@ -162,40 +167,45 @@ export default function Game2048Page() {
   }, [isPending, lastAction])
 
   useEffect(() => {
+    if (isConfirming && lastAction === 'start') {
+      toast.loading('Waiting for confirmation...', { id: 'start-game' })
+    }
+  }, [isConfirming, lastAction])
+
+  useEffect(() => {
     const getGameId = async () => {
-      if (isConfirmed && lastAction === 'start' && txHash && pendingBoard && !gameStarted && publicClient) {
+      if (isConfirmed && lastAction === 'start' && txHash && pendingBoard && publicClient && processedTxHash !== txHash) {
+        setProcessedTxHash(txHash)
+        toast.loading('Loading game...', { id: 'start-game' })
         try {
           const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
+          let eventFound = false
           for (const log of receipt.logs) {
+            
+            if (log.address.toLowerCase() !== CONTRACT_ADDRESS.toLowerCase()) {
+              continue
+            }
+
             try {
               const decoded = decodeEventLog({
                 abi: Game2048ABI,
                 data: log.data,
                 topics: log.topics,
-              })
+              }) as any
 
               if (decoded.eventName === 'GameStarted') {
-                const gameId = (decoded.args as any).gameId
-
-                const block = await publicClient.getBlock({ blockHash: receipt.blockHash })
-                const blockTimestamp = Number(block.timestamp) * 1000
-
-                const board = initializeBoard(blockTimestamp)
-                const rng = new SeededRandom(blockTimestamp)
-                rng.next()
-                rng.next()
-                rng.next()
-                rng.next()
+                eventFound = true
+                const gameId = decoded.args.gameId
 
                 const correctedGameState: GameState = {
-                  board,
-                  score: 1,
-                  moves: [],
-                  gameOver: false,
-                  won: false,
-                  rng,
-                  seed: blockTimestamp,
+                  board: pendingBoard.board,
+                  score: pendingBoard.score,
+                  moves: pendingBoard.moves,
+                  gameOver: pendingBoard.gameOver,
+                  won: pendingBoard.won,
+                  rng: pendingBoard.rng,
+                  seed: pendingBoard.seed,
                 }
 
                 setActiveGameId(gameId)
@@ -209,16 +219,27 @@ export default function Game2048Page() {
                 break
               }
             } catch (e) {
+              
             }
+          }
+
+          if (!eventFound) {
+            toast.error('Failed to start game - event not found', { id: 'start-game' })
+            setStartTxState('error')
+            setPendingBoard(null)
+            setLastAction(null)
           }
         } catch (error) {
           toast.error('Failed to get game ID', { id: 'start-game' })
+          setStartTxState('error')
+          setPendingBoard(null)
+          setLastAction(null)
         }
       }
     }
 
     getGameId()
-  }, [isConfirmed, lastAction, txHash, pendingBoard, gameStarted, resetWrite, publicClient])
+  }, [isConfirmed, lastAction, txHash, pendingBoard, resetWrite, publicClient, processedTxHash])
 
   useEffect(() => {
     const saveToDatabase = async () => {

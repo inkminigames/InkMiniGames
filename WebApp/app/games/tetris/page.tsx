@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
-import { toHex, decodeEventLog, encodeAbiParameters, stringToHex } from 'viem'
+import { toHex, decodeEventLog, encodeAbiParameters, stringToHex, type Abi } from 'viem'
 import { toast } from 'sonner'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -18,20 +18,21 @@ import {
   initializeGame,
   makeMove,
 } from '@/lib/games/tetris'
-import TetrisABI from '@/lib/web3/TetrisABI.json'
+import TetrisABIJson from '@/lib/web3/TetrisABI.json'
 import { saveScoreWithVerification } from '@/lib/supabase/client'
 
+const TetrisABI = TetrisABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TETRIS_CONTRACT_ADDRESS as `0x${string}`
 
 type TransactionState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
 
 const MOVE_MAP: { [key in Direction]: number } = {
-  'LEFT': 0,
-  'RIGHT': 1,
-  'DOWN': 2,
-  'ROTATE_CW': 3,
-  'HARD_DROP': 4,
-  'ROTATE_CCW': 5,
+  'LEFT': 1,
+  'RIGHT': 2,
+  'DOWN': 3,
+  'ROTATE_CW': 4,
+  'HARD_DROP': 5,
+  'ROTATE_CCW': 6,
 }
 
 function encodeMoves(moves: Direction[]): Uint8Array {
@@ -67,6 +68,7 @@ export default function TetrisPage() {
           address: CONTRACT_ADDRESS,
           abi: TetrisABI,
           functionName: 'gameFee',
+          args: [],
         }) as bigint
 
         setGameFee(fee)
@@ -197,10 +199,10 @@ export default function TetrisPage() {
                 abi: TetrisABI,
                 data: log.data,
                 topics: log.topics,
-              })
+              }) as any
 
               if (decoded.eventName === 'GameStarted') {
-                const gameId = (decoded.args as any).gameId
+                const gameId = decoded.args.gameId
 
                 setActiveGameId(gameId)
                 setGameState(pendingGameState)

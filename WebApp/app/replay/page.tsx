@@ -40,7 +40,7 @@ export default function ReplayPage() {
         const gameIdSet = new Set<number>()
 
         for (const gameType of gameTypes) {
-          // Fetch best score
+          
           const { data: bestScore, error: bestError } = await supabase
             .from('user_scores')
             .select('game_id_onchain, game_type, score, created_at, wallet_address')
@@ -49,7 +49,7 @@ export default function ReplayPage() {
             .order('score', { ascending: false })
             .limit(1)
 
-          // Fetch last game by game_id_onchain (highest ID = most recent)
+          
           const { data: lastGame, error: lastError } = await supabase
             .from('user_scores')
             .select('game_id_onchain, game_type, score, created_at, wallet_address')
@@ -61,7 +61,7 @@ export default function ReplayPage() {
           const bestGameId = bestScore?.[0]?.game_id_onchain
           const lastGameId = lastGame?.[0]?.game_id_onchain
 
-          // Add best score game if exists
+          
           if (!bestError && bestScore && bestScore.length > 0) {
             const game = bestScore[0]
             gameIdSet.add(game.game_id_onchain)
@@ -76,7 +76,7 @@ export default function ReplayPage() {
             })
           }
 
-          // Add last played game only if different from best score
+          
           if (!lastError && lastGame && lastGame.length > 0) {
             const game = lastGame[0]
             if (!gameIdSet.has(game.game_id_onchain)) {
@@ -93,11 +93,11 @@ export default function ReplayPage() {
           }
         }
 
-        // Sort by game_id_onchain descending (most recent first)
+        
         allGames.sort((a, b) => b.gameId - a.gameId)
         setUserGames(allGames)
       } catch (error) {
-        console.error('Error fetching games:', error)
+        
       } finally {
         setLoading(false)
       }
@@ -211,7 +211,7 @@ export default function ReplayPage() {
             </p>
           </motion.div>
 
-          {/* Game Type Filter */}
+          {}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -270,7 +270,7 @@ export default function ReplayPage() {
             </button>
           </motion.div>
 
-          {/* Games List */}
+          {}
           <div className="max-w-5xl mx-auto">
             {filteredGames.length === 0 ? (
               <Card className="p-12 text-center">
@@ -292,7 +292,7 @@ export default function ReplayPage() {
                   >
                     <Card className="group relative overflow-hidden hover:border-primary/50 transition-all duration-300">
                       <div className="flex flex-col md:flex-row items-stretch">
-                        {/* Left side - Game type badge */}
+                        {}
                         <div className="relative w-full md:w-40 h-24 md:h-auto bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 flex items-center justify-center overflow-hidden border-r border-border/50">
                           <motion.div
                             className="relative"
@@ -319,7 +319,7 @@ export default function ReplayPage() {
                           </motion.div>
                         </div>
 
-                        {/* Middle - Score and metadata */}
+                        {}
                         <div className="flex-1 p-6 flex flex-col justify-center gap-4">
                           <div className="flex items-center justify-between">
                             <div>
@@ -355,7 +355,7 @@ export default function ReplayPage() {
                           </div>
                         </div>
 
-                        {/* Right side - Actions */}
+                        {}
                         <div className="flex flex-col md:flex-row items-stretch gap-2 p-4 md:p-6 md:pl-0 md:min-w-[280px]">
                           <Link
                             href={getGamePath(game.gameId, game.gameType)}
@@ -379,7 +379,7 @@ export default function ReplayPage() {
                         </div>
                       </div>
 
-                      {/* Hover effect */}
+                      {}
                       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     </Card>
                   </motion.div>

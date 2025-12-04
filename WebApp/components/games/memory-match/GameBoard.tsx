@@ -39,7 +39,7 @@ export function GameBoard({
 
   return (
     <div className="relative">
-      {/* Hint Button */}
+      {}
       {!isReplay && !gameOver && hintsRemaining > 0 && (
         <div className="flex justify-center mb-4">
           <motion.button
@@ -55,10 +55,11 @@ export function GameBoard({
       )}
 
       <div
-        className="grid gap-2 p-4 bg-card rounded-2xl border-2 border-border mx-auto"
+        className="grid gap-4 p-6 bg-card rounded-2xl border-2 border-border mx-auto"
         style={{
           gridTemplateColumns: `repeat(${config.gridCols}, minmax(0, 1fr))`,
-          maxWidth: level === 1 ? '400px' : level === 2 ? '500px' : '600px'
+          maxWidth: level === 1 ? '500px' : level === 2 ? '600px' : '700px',
+          width: '100%'
         }}
       >
         {cards.map((card, index) => (
@@ -150,7 +151,7 @@ interface CardComponentProps {
 }
 
 function CardComponent({ card, onClick, disabled, isHinted = false }: CardComponentProps) {
-  // Render placeholder as invisible
+  
   if (!card.value) {
     return (
       <div className="relative aspect-square opacity-0 pointer-events-none" />

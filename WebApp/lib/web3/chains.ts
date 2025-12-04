@@ -1,6 +1,6 @@
 import { defineChain } from 'viem'
 
-// Ink Mainnet
+
 export const ink = defineChain({
   id: 57073,
   name: 'Ink',
@@ -22,7 +22,7 @@ export const ink = defineChain({
   testnet: false,
 })
 
-// Ink Sepolia Testnet
+
 export const inkSepolia = defineChain({
   id: 763373,
   name: 'Ink Sepolia',

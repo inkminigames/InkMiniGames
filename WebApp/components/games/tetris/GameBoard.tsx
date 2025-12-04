@@ -16,7 +16,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
   const nextPieceCanvasRef = useRef<HTMLCanvasElement>(null)
   const [pressedKey, setPressedKey] = useState<string | null>(null)
 
-  const CELL_SIZE = 32 // Increased from 30
+  const CELL_SIZE = 32 
   const BOARD_WIDTH = 10
   const BOARD_HEIGHT = 20
   const CANVAS_WIDTH = BOARD_WIDTH * CELL_SIZE
@@ -26,7 +26,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
   const NEXT_PIECE_CELL_SIZE = 28
   const NEXT_PIECE_CANVAS_SIZE = NEXT_PIECE_SIZE * NEXT_PIECE_CELL_SIZE
 
-  // Draw the game board
+  
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -34,11 +34,11 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Clear canvas with dark blue background
+    
     ctx.fillStyle = '#0a0a1a'
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
-    // Draw grid lines
+    
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'
     ctx.lineWidth = 1
     for (let x = 0; x <= BOARD_WIDTH; x++) {
@@ -54,18 +54,18 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
       ctx.stroke()
     }
 
-    // Draw locked pieces on board with improved rendering
+    
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
         const value = gameState.board[y][x]
         if (value !== 0) {
           const color = getCellColor(value)
 
-          // Main block
+          
           ctx.fillStyle = color
           ctx.fillRect(x * CELL_SIZE + 2, y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4)
 
-          // Top shine effect
+          
           const shineGradient = ctx.createLinearGradient(
             x * CELL_SIZE,
             y * CELL_SIZE,
@@ -77,7 +77,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
           ctx.fillStyle = shineGradient
           ctx.fillRect(x * CELL_SIZE + 2, y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE / 2)
 
-          // Border highlight
+          
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
           ctx.lineWidth = 1
           ctx.strokeRect(x * CELL_SIZE + 2, y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4)
@@ -85,12 +85,12 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
       }
     }
 
-    // Draw current piece
+    
     if (gameState.currentPiece && !gameState.gameOver) {
       const piece = gameState.currentPiece
       const color = piece.color
 
-      // Draw ghost piece first (preview where it will land)
+      
       let ghostY = piece.position.y
       while (canPlacePiece(gameState.board, piece, ghostY + 1)) {
         ghostY++
@@ -114,7 +114,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
         }
       }
 
-      // Draw actual piece on top of ghost
+      
       for (let y = 0; y < piece.shape.length; y++) {
         for (let x = 0; x < piece.shape[y].length; x++) {
           if (piece.shape[y][x]) {
@@ -122,11 +122,11 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
             const boardY = piece.position.y + y
 
             if (boardY >= 0) {
-              // Main block
+              
               ctx.fillStyle = color
               ctx.fillRect(boardX * CELL_SIZE + 2, boardY * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4)
 
-              // Shine effect
+              
               const shineGradient = ctx.createLinearGradient(
                 boardX * CELL_SIZE,
                 boardY * CELL_SIZE,
@@ -138,7 +138,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
               ctx.fillStyle = shineGradient
               ctx.fillRect(boardX * CELL_SIZE + 2, boardY * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE / 2)
 
-              // Border highlight
+              
               ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
               ctx.lineWidth = 1
               ctx.strokeRect(boardX * CELL_SIZE + 2, boardY * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4)
@@ -149,7 +149,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
     }
   }, [gameState])
 
-  // Helper function to check if piece can be placed
+  
   function canPlacePiece(board: number[][], piece: { shape: number[][], position: { x: number, y: number } }, newY?: number): boolean {
     const y = newY !== undefined ? newY : piece.position.y
 
@@ -172,7 +172,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
     return true
   }
 
-  // Draw next piece preview
+  
   useEffect(() => {
     const canvas = nextPieceCanvasRef.current
     if (!canvas) return
@@ -180,7 +180,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Clear canvas
+    
     ctx.fillStyle = '#0a0a1a'
     ctx.fillRect(0, 0, NEXT_PIECE_CANVAS_SIZE, NEXT_PIECE_CANVAS_SIZE)
 
@@ -189,7 +189,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
       const color = piece.color
       const shape = piece.shape
 
-      // Center the piece
+      
       const offsetX = Math.floor((NEXT_PIECE_SIZE - shape[0].length) / 2)
       const offsetY = Math.floor((NEXT_PIECE_SIZE - shape.length) / 2)
 
@@ -199,11 +199,11 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
             const drawX = (offsetX + x) * NEXT_PIECE_CELL_SIZE
             const drawY = (offsetY + y) * NEXT_PIECE_CELL_SIZE
 
-            // Main block
+            
             ctx.fillStyle = color
             ctx.fillRect(drawX + 2, drawY + 2, NEXT_PIECE_CELL_SIZE - 4, NEXT_PIECE_CELL_SIZE - 4)
 
-            // Shine effect
+            
             const shineGradient = ctx.createLinearGradient(
               drawX, drawY, drawX, drawY + NEXT_PIECE_CELL_SIZE / 2
             )
@@ -217,7 +217,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
     }
   }, [gameState.nextPiece])
 
-  // Listen for arrow keys to show visual feedback
+  
   useEffect(() => {
     if (isReplay) return
 
@@ -260,7 +260,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Score Display */}
+      {}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -271,7 +271,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
       </motion.div>
 
       <div className="flex gap-8 items-start">
-        {/* Main game board */}
+        {}
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -289,7 +289,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
             className="rounded-xl border-2 border-border/50"
           />
 
-          {/* Game Over Overlay */}
+          {}
           <AnimatePresence>
             {gameState.gameOver && !isReplay && (
               <motion.div
@@ -357,14 +357,14 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
           </AnimatePresence>
         </motion.div>
 
-        {/* Side panel */}
+        {}
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.1, ease: 'easeOut' }}
           className="flex flex-col gap-6"
         >
-          {/* Next Piece */}
+          {}
           <div className="bg-card border border-border rounded-xl p-5">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4 text-center">
               Next Piece
@@ -379,7 +379,7 @@ export function GameBoard({ gameState, onNewGame, onSubmit, isReplay = false }: 
             </div>
           </div>
 
-          {/* Stats */}
+          {}
           <div className="bg-card border border-border rounded-xl p-5">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               Stats

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { usePublicClient } from 'wagmi'
+import { type Abi, decodeAbiParameters } from 'viem'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -16,10 +17,11 @@ import {
   Move,
   arrayToGrid,
   decodeMoves,
+  LEVEL_CONFIG,
 } from '@/lib/games/memory-match'
 import MemoryMatchArtifact from '@/lib/web3/MemoryMatchABI.json'
 
-const MemoryMatchABI = MemoryMatchArtifact.abi
+const MemoryMatchABI = (MemoryMatchArtifact as any).abi as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_MEMORY_MATCH_CONTRACT_ADDRESS as `0x${string}`
 
 export default function MemoryMatchReplayPage() {
@@ -46,14 +48,28 @@ export default function MemoryMatchReplayPage() {
         setLoading(true)
         setError(null)
 
-        const result = await publicClient.readContract({
-          address: CONTRACT_ADDRESS,
-          abi: MemoryMatchABI,
-          functionName: 'getGameSessionWithGrid',
-          args: [BigInt(gameId)],
-        }) as any
+        
+        let result: any
+        let initialGridBytes: any = null
 
-        const [player, initialGridBytes, startTime, endTime, finalScoreValue, movesBytes, state] = result
+        try {
+          result = await publicClient.readContract({
+            address: CONTRACT_ADDRESS,
+            abi: MemoryMatchABI,
+            functionName: 'getGameSessionWithGrid',
+            args: [BigInt(gameId)],
+          }) as any
+
+          const [player, gridBytes, startTime, endTime, finalScoreValue, movesBytes, state] = result
+          initialGridBytes = gridBytes
+          result = [player, startTime, endTime, finalScoreValue, movesBytes, state]
+        } catch (err: any) {
+          
+          
+          throw new Error('Unable to load game replay. This contract version does not support Memory Match replays.')
+        }
+
+        const [player, startTime, endTime, finalScoreValue, movesBytes, state] = result
 
         if (player === '0x0000000000000000000000000000000000000000') {
           throw new Error('Game not found or does not exist')
@@ -61,10 +77,53 @@ export default function MemoryMatchReplayPage() {
 
         setFinalScore(Number(finalScoreValue))
 
-        const gridArray: number[] = []
-        const gridHex = initialGridBytes.startsWith('0x') ? initialGridBytes.slice(2) : initialGridBytes
-        for (let i = 0; i < gridHex.length; i += 2) {
-          gridArray.push(parseInt(gridHex.substring(i, i + 2), 16))
+        
+        if (!initialGridBytes) {
+          throw new Error('This game was created with an older contract version that does not support replay. Only games created after the contract upgrade can be replayed.')
+        }
+
+        
+        
+        let gridArray: number[] = []
+
+        if (typeof initialGridBytes === 'string' && initialGridBytes.startsWith('0x')) {
+          const hexLength = initialGridBytes.length - 2 
+          const byteLength = hexLength / 2
+          const arrayLength = byteLength / 32 
+
+          
+          const possibleSizes = [6, 16, 36]
+
+          for (const size of possibleSizes) {
+            if (arrayLength === size) {
+              try {
+                const result = decodeAbiParameters(
+                  [{ type: `uint256[${size}]` }],
+                  initialGridBytes as `0x${string}`
+                )
+                const decodedArray = result[0] as readonly bigint[]
+                gridArray = decodedArray.map((n: bigint) => Number(n))
+                break
+              } catch (error) {
+                
+              }
+            }
+          }
+        }
+
+        
+        const gridSize = gridArray.length
+        let level: 1 | 2 | 3 = 3
+        let maxAttempts = 50
+        if (gridSize === 6) {
+          level = 1
+          maxAttempts = 15
+        } else if (gridSize === 16) {
+          level = 2
+          maxAttempts = 35
+        } else if (gridSize === 36) {
+          level = 3
+          maxAttempts = 50
         }
 
         const theme = 'animals'
@@ -79,7 +138,7 @@ export default function MemoryMatchReplayPage() {
           flippedCards: [],
           matchedPairs: 0,
           attempts: 0,
-          maxAttempts: 50,
+          maxAttempts,
           score: 0,
           gameOver: false,
           won: false,
@@ -88,7 +147,7 @@ export default function MemoryMatchReplayPage() {
           startTime: Date.now(),
           hintsRemaining: 0,
           hintedCards: [],
-          level: 3
+          level
         }
         setGameState(initialState)
 
@@ -132,12 +191,13 @@ export default function MemoryMatchReplayPage() {
 
         const newMatchedPairs = state.matchedPairs + 1
         const newAttempts = state.attempts + 1
-        const baseScore = 100
+        const config = LEVEL_CONFIG[state.level]
+        const baseScore = config.pointsPerMatch
         const timeBonus = Math.max(0, 50 - Math.floor((Date.now() - state.startTime) / 1000))
         const attemptBonus = Math.max(0, (state.maxAttempts - newAttempts) * 2)
         const newScore = state.score + baseScore + timeBonus + attemptBonus
 
-        const won = newMatchedPairs === 12
+        const won = newMatchedPairs === config.pairsCount
         const gameOver = won || newAttempts >= state.maxAttempts
 
         return {
@@ -261,7 +321,7 @@ export default function MemoryMatchReplayPage() {
       flippedCards: [],
       matchedPairs: 0,
       attempts: 0,
-      maxAttempts: 50,
+      maxAttempts: gameState.maxAttempts,
       score: 0,
       gameOver: false,
       won: false,
@@ -270,7 +330,7 @@ export default function MemoryMatchReplayPage() {
       startTime: gameState.startTime,
       hintsRemaining: 0,
       hintedCards: [],
-      level: 3
+      level: gameState.level
     }
 
     for (let i = 0; i < currentMoveIndex - 1; i++) {
@@ -298,7 +358,7 @@ export default function MemoryMatchReplayPage() {
       flippedCards: [],
       matchedPairs: 0,
       attempts: 0,
-      maxAttempts: 50,
+      maxAttempts: gameState.maxAttempts,
       score: 0,
       gameOver: false,
       won: false,
@@ -307,7 +367,7 @@ export default function MemoryMatchReplayPage() {
       startTime: gameState.startTime,
       hintsRemaining: 0,
       hintedCards: [],
-      level: 3
+      level: gameState.level
     }
     setGameState(initialState)
     setCurrentMoveIndex(0)
@@ -382,12 +442,13 @@ export default function MemoryMatchReplayPage() {
           <div className="flex flex-col lg:flex-row gap-12 items-start justify-center max-w-7xl mx-auto">
             <div className="flex-1 flex flex-col items-center relative">
               {gameState && (
-                <>
+                <div className="w-full max-w-2xl">
                   <GameBoard
                     cards={gameState.cards}
                     onCardClick={() => {}}
                     disabled={true}
                     isReplay={true}
+                    level={gameState.level}
                   />
 
                   {replayComplete && (
@@ -425,7 +486,7 @@ export default function MemoryMatchReplayPage() {
                       </motion.div>
                     </motion.div>
                   )}
-                </>
+                </div>
               )}
             </div>
 
@@ -477,7 +538,7 @@ export default function MemoryMatchReplayPage() {
                     </label>
                     <input
                       type="range"
-                      min="100"
+                      min="50"
                       max="2000"
                       step="100"
                       value={playbackSpeed}

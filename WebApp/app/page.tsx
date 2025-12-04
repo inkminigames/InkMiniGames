@@ -40,9 +40,9 @@ export default function Home() {
     <div className="min-h-screen">
       <Navbar />
 
-      {/* Hero Section with animated gradient text */}
+      {}
       <section className="relative py-32 md:py-40 overflow-hidden">
-        {/* Background wallpaper */}
+        {}
         <div className="absolute inset-0">
           <Image
             src="/ink_mini_games_wallpaper.png"
@@ -99,7 +99,7 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Stats Section */}
+      {}
       <section className="py-16 border-y border-border/50">
         <Container>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12 max-w-3xl mx-auto">
@@ -127,7 +127,7 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* How it Works */}
+      {}
       <section className="py-24 md:py-32 border-t border-border/50">
         <Container>
           <div className="max-w-6xl mx-auto space-y-16">
@@ -185,9 +185,9 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Replay Feature Teaser */}
+      {}
       <section className="py-24 md:py-32 border-t border-border/50 relative overflow-hidden">
-        {/* Background gradient */}
+        {}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/30 via-transparent to-primary/30" />
         </div>
@@ -268,7 +268,7 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Games Sneak Peek */}
+      {}
       <section className="py-24 md:py-32 border-t border-border/50">
         <Container>
           <div className="max-w-6xl mx-auto space-y-12">
@@ -347,7 +347,7 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Footer */}
+      {}
       <footer className="py-16 border-t border-border/50">
         <Container>
           <div className="flex flex-col items-center gap-6">
