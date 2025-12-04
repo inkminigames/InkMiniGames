@@ -265,19 +265,27 @@ export function encodeMoves(moves: Move[]): string {
 }
 
 // Decode moves from bytes
-export function decodeMoves(encoded: string | `0x${string}`): Move[] {
-  if (!encoded || encoded === '0x') return []
+export function decodeMoves(encoded: string | `0x${string}` | Uint8Array): Move[] {
+  if (!encoded) return []
 
-  let moveString = encoded
+  let moveString = ''
 
-  // If it's hex encoded (starts with 0x), convert from hex to string
-  if (encoded.startsWith('0x')) {
-    const hex = encoded.slice(2)
-    // Convert hex pairs to characters
-    moveString = ''
-    for (let i = 0; i < hex.length; i += 2) {
-      const byte = parseInt(hex.substr(i, 2), 16)
-      moveString += String.fromCharCode(byte)
+  // If it's a Uint8Array, convert to string directly
+  if (encoded instanceof Uint8Array) {
+    moveString = Array.from(encoded).map(byte => String.fromCharCode(byte)).join('')
+  } else if (encoded === '0x') {
+    return []
+  } else if (typeof encoded === 'string') {
+    // If it's hex encoded (starts with 0x), convert from hex to string
+    if (encoded.startsWith('0x')) {
+      const hex = encoded.slice(2)
+      // Convert hex pairs to characters
+      for (let i = 0; i < hex.length; i += 2) {
+        const byte = parseInt(hex.substr(i, 2), 16)
+        moveString += String.fromCharCode(byte)
+      }
+    } else {
+      moveString = encoded
     }
   }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
-import { parseEther, toHex, decodeEventLog, encodeAbiParameters } from 'viem'
+import { parseEther, toHex, decodeEventLog, encodeAbiParameters, type Abi } from 'viem'
 import { toast } from 'sonner'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -22,9 +22,10 @@ import {
   SeededRandom,
   boardToSeed,
 } from '@/lib/games/2048'
-import Game2048ABI from '@/lib/web3/Game2048ABI.json'
+import Game2048ABIJson from '@/lib/web3/Game2048ABI.json'
 import { saveScoreWithVerification } from '@/lib/supabase/client'
 
+const Game2048ABI = Game2048ABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_GAME2048_CONTRACT_ADDRESS as `0x${string}`
 
 type TransactionState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
@@ -55,6 +56,7 @@ export default function Game2048Page() {
           address: CONTRACT_ADDRESS,
           abi: Game2048ABI,
           functionName: 'gameFee',
+          args: [],
         }) as bigint
 
         setGameFee(fee)
@@ -167,22 +169,60 @@ export default function Game2048Page() {
         try {
           const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
+          console.log('Transaction receipt:', receipt)
+          console.log('Total logs:', receipt.logs.length)
+
+          let eventFound = false
           for (const log of receipt.logs) {
+            // Only process logs from our contract
+            if (log.address.toLowerCase() !== CONTRACT_ADDRESS.toLowerCase()) {
+              console.log('Skipping log from different address:', log.address)
+              continue
+            }
+
+            console.log('Processing log from contract:', log)
+
             try {
               const decoded = decodeEventLog({
                 abi: Game2048ABI,
                 data: log.data,
                 topics: log.topics,
-              })
+              }) as any
+
+              console.log('Decoded event:', decoded.eventName, decoded)
 
               if (decoded.eventName === 'GameStarted') {
-                const gameId = (decoded.args as any).gameId
+                eventFound = true
+                const gameId = decoded.args.gameId
 
-                const block = await publicClient.getBlock({ blockHash: receipt.blockHash })
-                const blockTimestamp = Number(block.timestamp) * 1000
+                console.log('Game started with ID:', gameId.toString())
 
-                const board = initializeBoard(blockTimestamp)
-                const rng = new SeededRandom(blockTimestamp)
+                // Retry getting block with exponential backoff
+                let blockTimestamp: number | null = null
+                let retries = 0
+                const maxRetries = 5
+
+                while (blockTimestamp === null && retries < maxRetries) {
+                  try {
+                    const block = await publicClient.getBlock({ blockHash: receipt.blockHash }) as any
+                    blockTimestamp = Number(block.timestamp) * 1000
+                    console.log('Got block timestamp:', blockTimestamp)
+                  } catch (blockError: any) {
+                    retries++
+                    if (retries < maxRetries) {
+                      const delay = Math.min(1000 * Math.pow(2, retries - 1), 5000) // 1s, 2s, 4s, 5s, 5s
+                      console.log(`Block not found (attempt ${retries}/${maxRetries}), retrying in ${delay}ms...`)
+                      await new Promise(resolve => setTimeout(resolve, delay))
+                    } else {
+                      console.error('Failed to get block after', maxRetries, 'attempts:', blockError)
+                      throw new Error('Block not available. Please refresh the page.')
+                    }
+                  }
+                }
+
+                const seed = blockTimestamp!
+                const board = initializeBoard(seed)
+                const rng = new SeededRandom(seed)
                 rng.next()
                 rng.next()
                 rng.next()
@@ -195,7 +235,7 @@ export default function Game2048Page() {
                   gameOver: false,
                   won: false,
                   rng,
-                  seed: blockTimestamp,
+                  seed,
                 }
 
                 setActiveGameId(gameId)
@@ -209,10 +249,25 @@ export default function Game2048Page() {
                 break
               }
             } catch (e) {
+              console.log('Failed to decode log:', e)
             }
           }
+
+          if (!eventFound) {
+            console.error('GameStarted event not found in transaction logs')
+            console.log('Contract address:', CONTRACT_ADDRESS)
+            console.log('Logs from contract:', receipt.logs.filter(l => l.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()))
+            toast.error('Failed to start game - event not found', { id: 'start-game' })
+            setStartTxState('error')
+            setPendingBoard(null)
+            setLastAction(null)
+          }
         } catch (error) {
+          console.error('Error getting game ID:', error)
           toast.error('Failed to get game ID', { id: 'start-game' })
+          setStartTxState('error')
+          setPendingBoard(null)
+          setLastAction(null)
         }
       }
     }

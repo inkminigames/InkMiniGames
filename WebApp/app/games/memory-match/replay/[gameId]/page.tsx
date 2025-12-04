@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { usePublicClient } from 'wagmi'
+import { type Abi } from 'viem'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -19,7 +20,7 @@ import {
 } from '@/lib/games/memory-match'
 import MemoryMatchArtifact from '@/lib/web3/MemoryMatchABI.json'
 
-const MemoryMatchABI = MemoryMatchArtifact.abi
+const MemoryMatchABI = (MemoryMatchArtifact as any).abi as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_MEMORY_MATCH_CONTRACT_ADDRESS as `0x${string}`
 
 export default function MemoryMatchReplayPage() {
@@ -61,10 +62,14 @@ export default function MemoryMatchReplayPage() {
 
         setFinalScore(Number(finalScoreValue))
 
-        const gridArray: number[] = []
-        const gridHex = initialGridBytes.startsWith('0x') ? initialGridBytes.slice(2) : initialGridBytes
-        for (let i = 0; i < gridHex.length; i += 2) {
-          gridArray.push(parseInt(gridHex.substring(i, i + 2), 16))
+        let gridArray: number[] = []
+        if (typeof initialGridBytes === 'string') {
+          const gridHex = initialGridBytes.startsWith('0x') ? initialGridBytes.slice(2) : initialGridBytes
+          for (let i = 0; i < gridHex.length; i += 2) {
+            gridArray.push(parseInt(gridHex.substring(i, i + 2), 16))
+          }
+        } else {
+          gridArray = Array.from(initialGridBytes)
         }
 
         const theme = 'animals'

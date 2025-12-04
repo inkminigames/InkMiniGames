@@ -236,15 +236,24 @@ export function encodeMoves(moves: Move[]): Uint8Array {
   return buffer
 }
 
-export function decodeMoves(encoded: string | `0x${string}`): Move[] {
-  if (!encoded || encoded === '0x') return []
+export function decodeMoves(encoded: string | `0x${string}` | Uint8Array): Move[] {
+  if (!encoded) return []
 
-  const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded
   const moves: Move[] = []
 
-  for (let i = 0; i < hex.length; i += 2) {
-    const byte = parseInt(hex.substring(i, i + 2), 16)
-    moves.push({ cardIndex: byte, timestamp: 0 })
+  if (encoded instanceof Uint8Array) {
+    // If it's a Uint8Array, read bytes directly
+    for (const byte of encoded) {
+      moves.push({ cardIndex: byte, timestamp: 0 })
+    }
+  } else if (encoded === '0x') {
+    return []
+  } else if (typeof encoded === 'string') {
+    const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded
+    for (let i = 0; i < hex.length; i += 2) {
+      const byte = parseInt(hex.substring(i, i + 2), 16)
+      moves.push({ cardIndex: byte, timestamp: 0 })
+    }
   }
 
   return moves

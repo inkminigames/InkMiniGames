@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { usePublicClient } from 'wagmi'
+import { type Abi } from 'viem'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
@@ -18,8 +19,9 @@ import {
   autoMove,
   decodeMoves,
 } from '@/lib/games/snake'
-import SnakeABI from '@/lib/web3/SnakeABI.json'
+import SnakeABIJson from '@/lib/web3/SnakeABI.json'
 
+const SnakeABI = SnakeABIJson as Abi
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_SNAKE_CONTRACT_ADDRESS as `0x${string}`
 
 export default function SnakeReplayPage() {
@@ -34,7 +36,7 @@ export default function SnakeReplayPage() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(200)
-  const [moveQueue, setMoveQueue] = useState<Direction[]>([])
+  const [initialSeed, setInitialSeed] = useState<number>(0)
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -58,10 +60,11 @@ export default function SnakeReplayPage() {
         }
 
         const seed = Number(initialStateBytes)
+        setInitialSeed(seed)
 
         const moves = decodeMoves(movesBytes)
+        console.log('Decoded moves:', moves)
         setAllMoves(moves)
-        setMoveQueue(moves)
 
         const initialState = initializeGame(seed)
         setGameState(initialState)
@@ -85,59 +88,54 @@ export default function SnakeReplayPage() {
       return
     }
 
+    if (currentMoveIndex >= allMoves.length) {
+      setIsPlaying(false)
+      return
+    }
+
     const timer = setTimeout(() => {
-      if (moveQueue.length > 0 && currentMoveIndex < allMoves.length) {
-        const nextMove = moveQueue[0]
-        const newState = makeMove(gameState, nextMove)
-
-        setMoveQueue(queue => queue.slice(1))
-        setCurrentMoveIndex(idx => idx + 1)
-        setGameState(newState)
-        return
-      }
-
       setGameState(prevState => {
         if (!prevState || prevState.gameOver) return prevState
-        return autoMove(prevState)
+
+        // Apply the next recorded move
+        const nextMove = allMoves[currentMoveIndex]
+        console.log(`Applying move ${currentMoveIndex}: ${nextMove}`)
+        return makeMove(prevState, nextMove)
       })
+      setCurrentMoveIndex(idx => idx + 1)
     }, playbackSpeed)
 
     return () => clearTimeout(timer)
-  }, [isPlaying, gameState, playbackSpeed, moveQueue, currentMoveIndex, allMoves.length])
+  }, [isPlaying, gameState, playbackSpeed, currentMoveIndex, allMoves])
 
   const handleStepForward = () => {
-    if (!gameState) return
+    if (!gameState || gameState.gameOver) return
 
-    if (currentMoveIndex < allMoves.length) {
-      const nextMove = allMoves[currentMoveIndex]
-      const newState = makeMove(gameState, nextMove)
+    const nextUserMove = currentMoveIndex < allMoves.length ? allMoves[currentMoveIndex] : null
+
+    // If we have a user move that changes direction, apply it
+    if (nextUserMove && nextUserMove !== gameState.direction) {
+      const newState = makeMove(gameState, nextUserMove)
       setGameState(newState)
       setCurrentMoveIndex(currentMoveIndex + 1)
-      setMoveQueue(queue => queue.slice(1))
-    } else if (!gameState.gameOver) {
+    } else {
+      // Just move forward in current direction
       const newState = autoMove(gameState)
       setGameState(newState)
     }
   }
 
   const handleStepBackward = () => {
-    if (!gameState || currentMoveIndex === 0) return
-    let state = initializeGame(gameState.seed)
-
-    for (let i = 0; i < currentMoveIndex - 1; i++) {
-      state = makeMove(state, allMoves[i])
-    }
-    setGameState(state)
-    setCurrentMoveIndex(currentMoveIndex - 1)
-    setMoveQueue(allMoves.slice(currentMoveIndex - 1))
+    // Step backward is not easy for snake - need to replay from start
+    // For now, just restart
+    handleReset()
   }
 
   const handleReset = () => {
-    if (!gameState) return
-    const initialState = initializeGame(gameState.seed)
+    if (!initialSeed) return
+    const initialState = initializeGame(initialSeed)
     setGameState(initialState)
     setCurrentMoveIndex(0)
-    setMoveQueue(allMoves)
     setIsPlaying(false)
   }
 
@@ -261,7 +259,7 @@ export default function SnakeReplayPage() {
                   <div className="flex items-center justify-between gap-2">
                     <Button
                       onClick={handleReset}
-                      disabled={currentMoveIndex === 0}
+                      disabled={!gameState}
                       variant="outline"
                       size="sm"
                       className="flex-1"
@@ -270,10 +268,11 @@ export default function SnakeReplayPage() {
                     </Button>
                     <Button
                       onClick={handleStepBackward}
-                      disabled={currentMoveIndex === 0}
+                      disabled={true}
                       variant="outline"
                       size="sm"
                       className="flex-1"
+                      title="Rewind not available for Snake - use Reset instead"
                     >
                       ← Step
                     </Button>

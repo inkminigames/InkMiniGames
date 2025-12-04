@@ -383,10 +383,9 @@ export function encodeMoves(moves: Direction[]): string {
 /**
  * Decode moves from string
  */
-export function decodeMoves(encoded: string | `0x${string}`): Direction[] {
-  if (!encoded || encoded === '0x') return []
+export function decodeMoves(encoded: string | `0x${string}` | Uint8Array): Direction[] {
+  if (!encoded) return []
 
-  const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded
   const moves: Direction[] = []
 
   const enumMap: { [key: number]: Direction } = {
@@ -398,11 +397,24 @@ export function decodeMoves(encoded: string | `0x${string}`): Direction[] {
     5: 'ROTATE_CCW',
   }
 
-  for (let i = 0; i < hex.length; i += 2) {
-    const byte = parseInt(hex.substring(i, i + 2), 16)
-    const direction = enumMap[byte]
-    if (direction) {
-      moves.push(direction)
+  if (encoded instanceof Uint8Array) {
+    // If it's a Uint8Array, read bytes directly
+    for (const byte of encoded) {
+      const direction = enumMap[byte]
+      if (direction) {
+        moves.push(direction)
+      }
+    }
+  } else if (encoded === '0x') {
+    return []
+  } else if (typeof encoded === 'string') {
+    const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded
+    for (let i = 0; i < hex.length; i += 2) {
+      const byte = parseInt(hex.substring(i, i + 2), 16)
+      const direction = enumMap[byte]
+      if (direction) {
+        moves.push(direction)
+      }
     }
   }
 
