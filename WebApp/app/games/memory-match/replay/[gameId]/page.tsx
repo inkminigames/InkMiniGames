@@ -48,7 +48,6 @@ export default function MemoryMatchReplayPage() {
         setLoading(true)
         setError(null)
 
-        
         let result: any
         let initialGridBytes: any = null
 
@@ -64,8 +63,6 @@ export default function MemoryMatchReplayPage() {
           initialGridBytes = gridBytes
           result = [player, startTime, endTime, finalScoreValue, movesBytes, state]
         } catch (err: any) {
-          
-          
           throw new Error('Unable to load game replay. This contract version does not support Memory Match replays.')
         }
 
@@ -77,21 +74,17 @@ export default function MemoryMatchReplayPage() {
 
         setFinalScore(Number(finalScoreValue))
 
-        
         if (!initialGridBytes) {
           throw new Error('This game was created with an older contract version that does not support replay. Only games created after the contract upgrade can be replayed.')
         }
 
-        
-        
         let gridArray: number[] = []
 
         if (typeof initialGridBytes === 'string' && initialGridBytes.startsWith('0x')) {
           const hexLength = initialGridBytes.length - 2 
           const byteLength = hexLength / 2
-          const arrayLength = byteLength / 32 
+          const arrayLength = byteLength / 32
 
-          
           const possibleSizes = [6, 16, 36]
 
           for (const size of possibleSizes) {
@@ -105,13 +98,11 @@ export default function MemoryMatchReplayPage() {
                 gridArray = decodedArray.map((n: bigint) => Number(n))
                 break
               } catch (error) {
-                
               }
             }
           }
         }
 
-        
         const gridSize = gridArray.length
         let level: 1 | 2 | 3 = 3
         let maxAttempts = 50

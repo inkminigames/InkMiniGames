@@ -34,15 +34,19 @@ export default function Home() {
       description: 'Match pairs and test your memory skills',
       available: true,
     },
+    {
+      id: 'puzzle',
+      title: 'Puzzle',
+      description: 'Drag and drop puzzle pieces to complete the picture',
+      available: true,
+    },
   ]
 
   return (
     <div className="min-h-screen">
       <Navbar />
 
-      {}
       <section className="relative py-32 md:py-40 overflow-hidden">
-        {}
         <div className="absolute inset-0">
           <Image
             src="/ink_mini_games_wallpaper.png"
@@ -99,12 +103,11 @@ export default function Home() {
         </Container>
       </section>
 
-      {}
       <section className="py-16 border-y border-border/50">
         <Container>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12 max-w-3xl mx-auto">
             {[
-              { value: '4', label: 'Game(s) Live', delay: 0.1 },
+              { value: '5', label: 'Game(s) Live', delay: 0.1 },
               { value: '100%', label: 'On-Chain', delay: 0.2 },
             ].map((stat, index) => (
               <motion.div
@@ -185,9 +188,7 @@ export default function Home() {
         </Container>
       </section>
 
-      {}
       <section className="py-24 md:py-32 border-t border-border/50 relative overflow-hidden">
-        {}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/30 via-transparent to-primary/30" />
         </div>
@@ -304,10 +305,13 @@ export default function Home() {
                             <div className={`text-7xl ${!game.available && 'grayscale opacity-50'}`}>🐍</div>
                           )}
                           {game.id === 'tetris' && (
-                            <div className={`text-7xl ${!game.available && 'grayscale opacity-50'}`}>🧩</div>
+                            <div className={`text-7xl ${!game.available && 'grayscale opacity-50'}`}>🟦</div>
                           )}
                           {game.id === 'memory-match' && (
                             <div className={`text-7xl ${!game.available && 'grayscale opacity-50'}`}>🎴</div>
+                          )}
+                          {game.id === 'puzzle' && (
+                            <div className={`text-7xl ${!game.available && 'grayscale opacity-50'}`}>🧩</div>
                           )}
                         </div>
                         <div className="space-y-3 text-center">
@@ -347,7 +351,6 @@ export default function Home() {
         </Container>
       </section>
 
-      {}
       <footer className="py-16 border-t border-border/50">
         <Container>
           <div className="flex flex-col items-center gap-6">

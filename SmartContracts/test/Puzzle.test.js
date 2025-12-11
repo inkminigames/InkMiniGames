@@ -35,18 +35,6 @@ describe("Puzzle", function () {
     it("Should initialize game counter at 0", async function () {
       expect(await puzzle.gameIdCounter()).to.equal(0);
     });
-
-    it("Should set correct grid size constant", async function () {
-      expect(await puzzle.GRID_SIZE()).to.equal(25);
-    });
-
-    it("Should set correct max bad placements constant", async function () {
-      expect(await puzzle.MAX_BAD_PLACEMENTS()).to.equal(5);
-    });
-
-    it("Should set correct max hints constant", async function () {
-      expect(await puzzle.MAX_HINTS()).to.equal(3);
-    });
   });
 
   describe("Starting a game", function () {

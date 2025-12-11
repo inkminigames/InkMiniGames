@@ -29,7 +29,6 @@ export default function LeaderboardPage() {
 
   const fetchLeaderboard = async () => {
     try {
-      
       const { data: scores, error } = await supabase
         .from('user_scores')
         .select('wallet_address, score, game_type')
@@ -44,7 +43,6 @@ export default function LeaderboardPage() {
         return
       }
 
-      
       const playerStats = new Map<string, Map<string, { bestScore: number; totalScore: number; gamesPlayed: number }>>()
 
       scores.forEach((score) => {
@@ -65,7 +63,6 @@ export default function LeaderboardPage() {
         })
       })
 
-      
       const leaderboardData: LeaderboardEntry[] = Array.from(playerStats.entries())
         .map(([wallet_address, gameStats]) => {
           const game_scores = Array.from(gameStats.entries()).map(([game_type, stats]) => ({
@@ -90,7 +87,6 @@ export default function LeaderboardPage() {
 
       setLeaderboard(leaderboardData)
     } catch (error) {
-      
     } finally {
       setLoading(false)
     }
@@ -102,7 +98,6 @@ export default function LeaderboardPage() {
 
       <Container>
         <div className="py-12">
-          {}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl mb-4 gradient-text">
               Leaderboard
@@ -143,7 +138,6 @@ export default function LeaderboardPage() {
             </div>
           </Card>
 
-          {}
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-pulse text-primary-400">Loading...</div>
@@ -156,24 +150,20 @@ export default function LeaderboardPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {}
               {leaderboard.length >= 3 ? (
                 <div className="grid md:grid-cols-3 gap-6 mb-12">
-                  {}
                   <PodiumCard
                     entry={leaderboard[1]}
                     rank={2}
                     color="from-slate-400 via-gray-400 to-slate-500"
                   />
 
-                  {}
                   <PodiumCard
                     entry={leaderboard[0]}
                     rank={1}
                     color="from-yellow-400 via-amber-400 to-yellow-600"
                   />
 
-                  {}
                   <PodiumCard
                     entry={leaderboard[2]}
                     rank={3}
@@ -192,7 +182,6 @@ export default function LeaderboardPage() {
                 </div>
               )}
 
-              {}
               {leaderboard.length > 3 && (
                 <div className="space-y-2">
                   {leaderboard.slice(3).map((entry, index) => (
@@ -246,7 +235,6 @@ function PodiumCard({
         }}
         style={{ transformStyle: 'preserve-3d' }}
       >
-        {}
         {rank === 1 && (
           <motion.div
             className="absolute inset-0 bg-gradient-to-br from-yellow-400/30 to-amber-600/30 rounded-t-xl blur-xl"
@@ -262,10 +250,8 @@ function PodiumCard({
           />
         )}
 
-        {}
         <div className={`relative ${heights[rank]} bg-gradient-to-br ${color} rounded-t-xl flex items-end justify-center p-6 transition-all duration-300 ${rank === 1 ? `shadow-2xl ${glowColors[rank]}` : 'shadow-lg'}`}>
           <div className="text-center w-full">
-            {}
             <motion.div
               className={`text-7xl mb-4 ${rank === 1 ? 'scale-110' : ''}`}
               animate={{
@@ -281,17 +267,14 @@ function PodiumCard({
               {medals[rank]}
             </motion.div>
 
-            {}
             <div className="text-white/90 text-2xl mb-3">
               #{rank}
             </div>
 
-            {}
             <div className="text-white/80 text-sm mb-4 font-mono">
               {formatAddress(entry.wallet_address)}
             </div>
 
-            {}
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-3">
               <div className="text-white/70 text-xs mb-1">Overall Best</div>
               <div className="text-white text-3xl font-mono">
@@ -299,7 +282,6 @@ function PodiumCard({
               </div>
             </div>
 
-            {}
             <div className="space-y-2 text-sm">
               {entry.game_scores.map((gameScore) => (
                 <div key={gameScore.game_type} className="bg-white/10 backdrop-blur-sm rounded-lg p-2">
@@ -346,18 +328,15 @@ function LeaderboardRow({
       whileHover={{ scale: 1.01, x: 5 }}
     >
       <Card className="flex items-center gap-6 py-5 px-6 bg-gradient-to-r from-white/[0.03] to-white/[0.01] border-white/5 hover:border-primary/30 hover:bg-white/[0.05] transition-all duration-300">
-        {}
         <div className="flex-shrink-0">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center">
             <span className="text-xl text-primary-400">#{rank}</span>
           </div>
         </div>
 
-        {}
         <div className="flex-1 min-w-0">
           <div className="font-mono text-lg text-foreground mb-3">{formatAddress(entry.wallet_address)}</div>
 
-          {}
           <div className="space-y-2">
             {entry.game_scores.map((gameScore) => (
               <div key={gameScore.game_type} className="flex items-center gap-4 text-sm">
@@ -383,7 +362,6 @@ function LeaderboardRow({
           </div>
         </div>
 
-        {}
         <div className="flex-shrink-0 text-right">
           <div className="text-xs text-foreground/50 mb-1">Overall Best</div>
           <div className="text-3xl font-mono text-primary-400">

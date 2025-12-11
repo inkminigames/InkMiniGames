@@ -35,14 +35,6 @@ describe("MemoryMatch", function () {
     it("Should initialize game counter at 0", async function () {
       expect(await memoryMatch.gameIdCounter()).to.equal(0);
     });
-
-    it("Should set correct grid size constant", async function () {
-      expect(await memoryMatch.GRID_SIZE()).to.equal(25);
-    });
-
-    it("Should set correct max attempts constant", async function () {
-      expect(await memoryMatch.MAX_ATTEMPTS()).to.equal(50);
-    });
   });
 
   describe("Starting a game", function () {

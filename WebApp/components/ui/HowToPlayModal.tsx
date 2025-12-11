@@ -12,7 +12,6 @@ interface HowToPlayModalProps {
 }
 
 export function HowToPlayModal({ isOpen, onClose, children, title, onPlay }: HowToPlayModalProps) {
-  
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -24,7 +23,6 @@ export function HowToPlayModal({ isOpen, onClose, children, title, onPlay }: How
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -41,7 +39,6 @@ export function HowToPlayModal({ isOpen, onClose, children, title, onPlay }: How
     <AnimatePresence>
       {isOpen && (
         <>
-          {}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -50,7 +47,6 @@ export function HowToPlayModal({ isOpen, onClose, children, title, onPlay }: How
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
           />
 
-          {}
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -60,7 +56,6 @@ export function HowToPlayModal({ isOpen, onClose, children, title, onPlay }: How
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-2xl max-h-[90vh] overflow-auto bg-card border-2 border-primary/30 rounded-2xl p-8 shadow-2xl"
             >
-              {}
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
@@ -71,17 +66,14 @@ export function HowToPlayModal({ isOpen, onClose, children, title, onPlay }: How
                 </svg>
               </button>
 
-              {}
               <h2 className="text-3xl font-bold mb-6 gradient-text pr-10">
                 {title}
               </h2>
 
-              {}
               <div className="space-y-4">
                 {children}
               </div>
 
-              {}
               {onPlay && (
                 <div className="mt-8 pt-6 border-t border-border">
                   <button

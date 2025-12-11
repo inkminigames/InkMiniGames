@@ -13,7 +13,6 @@ if (!supabaseSecretKey) {
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseSecretKey)
 
-
 const publicClient = createPublicClient({
   chain: inkSepolia,
   transport: http()
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as ScoreInsertData
     const { wallet_address, game_type, game_id_onchain, score, transaction_hash } = body
 
-    
     if (!wallet_address || !game_type || game_id_onchain === undefined || score === undefined || !transaction_hash) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
@@ -40,7 +38,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
     if (!/^0x[a-fA-F0-9]{40}$/.test(wallet_address)) {
       return NextResponse.json(
         { success: false, error: 'Invalid wallet address format' },
@@ -48,7 +45,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
     if (!/^0x[a-fA-F0-9]{64}$/.test(transaction_hash)) {
       return NextResponse.json(
         { success: false, error: 'Invalid transaction hash format' },
@@ -56,8 +52,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
-    const validGameTypes = ['2048', 'snake', 'tetris', 'memory-match']
+    const validGameTypes = ['2048', 'snake', 'tetris', 'memory-match', 'puzzle']
     if (!validGameTypes.includes(game_type)) {
       return NextResponse.json(
         { success: false, error: 'Invalid game type' },
@@ -65,7 +60,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
     if (score < 0) {
       return NextResponse.json(
         { success: false, error: 'Score must be positive' },
@@ -73,7 +67,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
     try {
       const receipt = await publicClient.getTransactionReceipt({
         hash: transaction_hash as `0x${string}`
@@ -86,7 +79,6 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      
       if (receipt.from.toLowerCase() !== wallet_address.toLowerCase()) {
         return NextResponse.json(
           { success: false, error: 'Transaction sender does not match wallet address' },
@@ -100,7 +92,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
     const { data: existingByTxHash } = await supabaseAdmin
       .from('user_scores')
       .select('*')
@@ -111,7 +102,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Score already exists' })
     }
 
-    
     const { data: existingByGameId } = await supabaseAdmin
       .from('user_scores')
       .select('*')
@@ -124,7 +114,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Score already exists' })
     }
 
-    
     const { error: insertError } = await supabaseAdmin
       .from('user_scores')
       .insert({
@@ -142,7 +131,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    
     const { data: verifyData, error: verifyError } = await supabaseAdmin
       .from('user_scores')
       .select('*')

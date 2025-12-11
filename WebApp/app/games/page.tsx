@@ -32,6 +32,12 @@ export default function GamesPage() {
       description: 'Match pairs and test your memory skills',
       available: true,
     },
+    {
+      id: 'puzzle',
+      title: 'Puzzle',
+      description: 'Drag and drop puzzle pieces to complete the picture',
+      available: true,
+    },
   ]
 
   return (
@@ -64,7 +70,6 @@ export default function GamesPage() {
                     <Link href={`/games/${game.id}`}>
                       <Card className="group relative overflow-hidden hover:border-primary/50 transition-all duration-300 cursor-pointer">
                         <div className="flex flex-col md:flex-row items-stretch">
-                          {}
                           <div className="relative w-full md:w-80 h-48 md:h-auto bg-gradient-to-br from-primary via-accent to-primary/80 flex items-center justify-center overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 animate-pulse-slow" />
                             <motion.div
@@ -104,7 +109,7 @@ export default function GamesPage() {
                                   animate={{ y: [0, -10, 0] }}
                                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                                 >
-                                  🧩
+                                  🟦
                                 </motion.div>
                               )}
                               {game.id === 'memory-match' && (
@@ -116,10 +121,18 @@ export default function GamesPage() {
                                   🎴
                                 </motion.div>
                               )}
+                              {game.id === 'puzzle' && (
+                                <motion.div
+                                  className="text-9xl filter drop-shadow-2xl"
+                                  animate={{ rotate: [0, 5, 0, -5, 0] }}
+                                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                >
+                                  🧩
+                                </motion.div>
+                              )}
                             </motion.div>
                           </div>
 
-                          {}
                           <div className="flex-1 p-8 md:p-10 flex flex-col justify-center">
                             <div className="flex items-start justify-between mb-4">
                               <h3 className="text-4xl md:text-5xl group-hover:text-primary transition-colors">
@@ -140,14 +153,12 @@ export default function GamesPage() {
                             </div>
                           </div>
                         </div>
-                        {}
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                       </Card>
                     </Link>
                   ) : (
                     <Card className="relative overflow-hidden opacity-60 cursor-not-allowed">
                       <div className="flex flex-col md:flex-row items-stretch">
-                        {}
                         <div className="relative w-full md:w-80 h-48 md:h-auto bg-gradient-to-br from-muted via-muted-foreground/20 to-muted flex items-center justify-center overflow-hidden">
                           <motion.div
                             className="relative text-9xl filter grayscale opacity-50"
@@ -160,7 +171,6 @@ export default function GamesPage() {
                           </motion.div>
                         </div>
 
-                        {}
                         <div className="flex-1 p-8 md:p-10 flex flex-col justify-center">
                           <div className="flex items-start justify-between mb-4">
                             <h3 className="text-4xl md:text-5xl">{game.title}</h3>

@@ -14,7 +14,6 @@ export function Navbar() {
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-purple/5" />
       <Container>
         <div className="relative flex h-28 items-center justify-between">
-          {}
           <Link
             href="/"
             className="group flex items-center gap-3"
@@ -30,7 +29,6 @@ export function Navbar() {
             </div>
           </Link>
 
-          {}
           <div className="flex items-center gap-4">
             <Link
               href="/"
@@ -86,7 +84,6 @@ export function Navbar() {
             </Link>
           </div>
 
-          {}
           <div className="flex items-center">
             <ConnectButton
               chainStatus="icon"

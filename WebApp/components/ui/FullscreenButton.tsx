@@ -24,7 +24,6 @@ export function FullscreenButton() {
         await document.exitFullscreen()
       }
     } catch (error) {
-
     }
   }
 

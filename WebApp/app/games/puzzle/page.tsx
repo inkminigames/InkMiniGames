@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
 import { toHex, decodeEventLog, encodeAbiParameters, type Abi } from 'viem'
 import { toast } from 'sonner'
@@ -9,34 +9,32 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Container } from '@/components/ui/Container'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { GameBoard } from '@/components/games/memory-match/GameBoard'
+import { GameBoard } from '@/components/games/puzzle/GameBoard'
 import { HowToPlayModal } from '@/components/ui/HowToPlayModal'
 import { FullscreenButton } from '@/components/ui/FullscreenButton'
 import {
   GameState,
-  initializeGame,
-  flipCard,
-  unflipCards,
-  encodeMoves,
-  gridToArray,
-  useHint,
-  clearHints,
-  LEVEL_CONFIG,
   Level,
-} from '@/lib/games/memory-match'
-import MemoryMatchArtifact from '@/lib/web3/MemoryMatchABI.json'
+  initializeGame,
+  makeMove,
+  puzzleToArray,
+  encodeMoves,
+  LEVEL_CONFIG,
+  fetchPuzzleImages,
+} from '@/lib/games/puzzle'
+import PuzzleABIJson from '@/lib/web3/PuzzleABI.json'
 import { saveScoreWithVerification } from '@/lib/supabase/client'
 
-const MemoryMatchABI = (MemoryMatchArtifact as any).abi as Abi
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_MEMORY_MATCH_CONTRACT_ADDRESS as `0x${string}`
+const PuzzleABI = PuzzleABIJson as Abi
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PUZZLE_CONTRACT_ADDRESS as `0x${string}`
 
 type TransactionState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
 
-export default function MemoryMatchPage() {
+export default function PuzzlePage() {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
   const { writeContract, data: txHash, isPending, error: writeError, reset: resetWrite } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isConfirmError, error: confirmError } = useWaitForTransactionReceipt({ hash: txHash })
+  const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isConfirmError } = useWaitForTransactionReceipt({ hash: txHash })
 
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [gameStarted, setGameStarted] = useState(false)
@@ -48,9 +46,12 @@ export default function MemoryMatchPage() {
   const [gameFee, setGameFee] = useState<bigint | null>(null)
   const [showHowToPlay, setShowHowToPlay] = useState(true)
   const [isSavingToDb, setIsSavingToDb] = useState(false)
-  const [selectedLevel, setSelectedLevel] = useState<1 | 2 | 3>(3)
+  const [selectedLevel, setSelectedLevel] = useState<Level>(2)
+  const [processedTxHash, setProcessedTxHash] = useState<string | null>(null)
 
-  const unflipTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  useEffect(() => {
+    fetchPuzzleImages()
+  }, [])
 
   useEffect(() => {
     const fetchGameFee = async () => {
@@ -62,7 +63,7 @@ export default function MemoryMatchPage() {
       try {
         const fee = await publicClient.readContract({
           address: CONTRACT_ADDRESS,
-          abi: MemoryMatchABI,
+          abi: PuzzleABI,
           functionName: 'gameFee',
           args: [],
         }) as bigint
@@ -88,12 +89,8 @@ export default function MemoryMatchPage() {
     setStartTxState('idle')
     setSubmitTxState('idle')
     setActiveGameId(null)
+    setProcessedTxHash(null)
     resetWrite()
-
-    if (unflipTimeoutRef.current) {
-      clearTimeout(unflipTimeoutRef.current)
-      unflipTimeoutRef.current = null
-    }
 
     const seed = Date.now()
     const newGameState = initializeGame(seed, selectedLevel)
@@ -112,23 +109,19 @@ export default function MemoryMatchPage() {
 
       toast.loading('Confirm transaction in wallet...', { id: 'start-game' })
 
-      const config = LEVEL_CONFIG[newGameState.level]
-      const gridArray = gridToArray(newGameState.cards, config.gridSize)
-
-      const encodedGrid = encodeAbiParameters(
-        [{ type: `uint256[${config.gridSize}]` }],
-        [gridArray as any]
+      const puzzleArray = puzzleToArray(newGameState)
+      const encodedPuzzle = encodeAbiParameters(
+        [{ type: 'uint256[]' }],
+        [puzzleArray.map(n => BigInt(n))]
       )
 
-      const contractCallParams = {
+      writeContract({
         address: CONTRACT_ADDRESS,
-        abi: MemoryMatchABI,
+        abi: PuzzleABI,
         functionName: 'startGame',
-        args: [encodedGrid],
+        args: [encodedPuzzle],
         value: gameFee || BigInt(0),
-      }
-
-      writeContract(contractCallParams)
+      })
     } catch (error: any) {
       toast.error(error?.message || 'Failed to start game', { id: 'start-game' })
       setPendingGameState(null)
@@ -154,7 +147,7 @@ export default function MemoryMatchPage() {
 
       writeContract({
         address: CONTRACT_ADDRESS,
-        abi: MemoryMatchABI,
+        abi: PuzzleABI,
         functionName: 'submitGame',
         args: [activeGameId, BigInt(gameState.score), movesHex],
       })
@@ -175,20 +168,34 @@ export default function MemoryMatchPage() {
   }, [isPending, lastAction])
 
   useEffect(() => {
+    if (isConfirming && lastAction === 'start') {
+      toast.loading('Waiting for confirmation...', { id: 'start-game' })
+    }
+  }, [isConfirming, lastAction])
+
+  useEffect(() => {
     const getGameId = async () => {
-      if (isConfirmed && lastAction === 'start' && txHash && pendingGameState && !gameStarted && publicClient) {
+      if (isConfirmed && lastAction === 'start' && txHash && pendingGameState && publicClient && processedTxHash !== txHash) {
+        setProcessedTxHash(txHash)
+        toast.loading('Loading game...', { id: 'start-game' })
         try {
           const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
 
+          let eventFound = false
           for (const log of receipt.logs) {
+            if (log.address.toLowerCase() !== CONTRACT_ADDRESS.toLowerCase()) {
+              continue
+            }
+
             try {
               const decoded = decodeEventLog({
-                abi: MemoryMatchABI,
+                abi: PuzzleABI,
                 data: log.data,
                 topics: log.topics,
               }) as any
 
               if (decoded.eventName === 'GameStarted') {
+                eventFound = true
                 const gameId = decoded.args.gameId
 
                 setActiveGameId(gameId)
@@ -204,14 +211,24 @@ export default function MemoryMatchPage() {
             } catch (e) {
             }
           }
+
+          if (!eventFound) {
+            toast.error('Failed to start game', { id: 'start-game' })
+            setStartTxState('error')
+            setPendingGameState(null)
+            setLastAction(null)
+          }
         } catch (error) {
           toast.error('Failed to get game ID', { id: 'start-game' })
+          setStartTxState('error')
+          setPendingGameState(null)
+          setLastAction(null)
         }
       }
     }
 
     getGameId()
-  }, [isConfirmed, lastAction, txHash, pendingGameState, gameStarted, resetWrite, publicClient])
+  }, [isConfirmed, lastAction, txHash, pendingGameState, resetWrite, publicClient, processedTxHash])
 
   useEffect(() => {
     const saveToDatabase = async () => {
@@ -222,7 +239,7 @@ export default function MemoryMatchPage() {
         setIsSavingToDb(true)
         const result = await saveScoreWithVerification({
           wallet_address: address.toLowerCase(),
-          game_type: 'memory-match',
+          game_type: 'puzzle',
           game_id_onchain: Number(activeGameId),
           score: gameState.score,
           transaction_hash: txHash,
@@ -251,16 +268,13 @@ export default function MemoryMatchPage() {
 
   useEffect(() => {
     if ((writeError || isConfirmError) && lastAction) {
-      const error: any = writeError || confirmError
-
+      const error: any = writeError || isConfirmError
       let errorMsg = 'Transaction failed'
 
       if (error?.message?.includes('User rejected')) {
         errorMsg = 'Transaction rejected'
       } else if (error?.message?.includes('insufficient')) {
         errorMsg = 'Insufficient funds'
-      } else if (confirmError) {
-        errorMsg = `Transaction reverted: ${confirmError?.message || 'Check contract requirements'}`
       }
 
       if (lastAction === 'start') {
@@ -276,62 +290,31 @@ export default function MemoryMatchPage() {
         resetWrite()
       }
     }
-  }, [writeError, isConfirmError, confirmError, lastAction, resetWrite])
+  }, [writeError, isConfirmError, lastAction, resetWrite])
 
-  const handleCardClick = useCallback((cardIndex: number) => {
-    if (!gameState || gameState.gameOver) return
-    if (gameState.flippedCards.length >= 2) return
-
-    
-    let stateToUse = gameState
-    if (gameState.hintedCards.length > 0) {
-      stateToUse = clearHints(gameState)
-      setGameState(stateToUse)
-    }
-
-    const newState = flipCard(stateToUse, cardIndex)
-    setGameState(newState)
-
-    if (newState.flippedCards.length === 2) {
-      const [first, second] = newState.flippedCards
-      const firstCard = newState.cards[first]
-      const secondCard = newState.cards[second]
-
-      if (firstCard.value !== secondCard.value) {
-        if (unflipTimeoutRef.current) {
-          clearTimeout(unflipTimeoutRef.current)
-        }
-
-        unflipTimeoutRef.current = setTimeout(() => {
-          setGameState(prevState => prevState ? unflipCards(prevState) : prevState)
-        }, 1000)
-      }
-    }
-  }, [gameState])
-
-  const handleUseHint = useCallback(() => {
+  const handlePieceMove = useCallback((pieceId: number, toRow: number, toCol: number) => {
     if (!gameState || gameState.gameOver) return
 
-    const newState = useHint(gameState)
-    setGameState(newState)
+    const piece = gameState.pieces.find(p => p.id === pieceId)
+    if (!piece) return
 
-    setTimeout(() => {
-      setGameState(prevState => prevState ? clearHints(prevState) : prevState)
-    }, 3000)
-  }, [gameState])
-
-  useEffect(() => {
-    return () => {
-      if (unflipTimeoutRef.current) {
-        clearTimeout(unflipTimeoutRef.current)
-      }
+    const move = {
+      pieceId,
+      fromRow: piece.currentRow,
+      fromCol: piece.currentCol,
+      toRow,
+      toCol,
     }
-  }, [])
+
+    const newState = makeMove(gameState, move)
+    setGameState(newState)
+  }, [gameState])
 
   const isStarting = startTxState === 'pending' || startTxState === 'confirming'
   const isSubmitting = submitTxState === 'pending' || submitTxState === 'confirming'
 
-  const attemptsRemaining = gameState ? gameState.maxAttempts - gameState.attempts : 50
+  const config = gameState ? LEVEL_CONFIG[gameState.level] : LEVEL_CONFIG[selectedLevel]
+  const placedPieces = gameState?.pieces.filter(p => p.isPlaced).length || 0
 
   return (
     <div className="min-h-screen">
@@ -346,10 +329,10 @@ export default function MemoryMatchPage() {
             className="text-center mb-12"
           >
             <h1 className="text-5xl md:text-6xl mb-4 gradient-text">
-              Memory Match
+              Puzzle
             </h1>
             <p className="text-lg text-muted-foreground mb-6">
-              Match pairs of cards and test your memory skills!
+              Drag and drop pieces to complete the puzzle!
             </p>
             <Button onClick={() => setShowHowToPlay(true)} variant="outline">
               How to Play
@@ -357,24 +340,17 @@ export default function MemoryMatchPage() {
           </motion.div>
 
           <div className="flex flex-col lg:flex-row gap-12 items-start justify-center max-w-7xl mx-auto">
-            <div className="flex-1 flex flex-col items-center">
+            <div className="flex-1 flex flex-col items-center w-full">
               {gameState && gameStarted ? (
-                <div className="w-full max-w-2xl">
-                  <GameBoard
-                    cards={gameState.cards}
-                    onCardClick={handleCardClick}
-                    disabled={gameState.flippedCards.length >= 2 || gameState.gameOver}
-                    gameOver={gameState.gameOver}
-                    won={gameState.won}
-                    score={gameState.score}
-                    onSubmit={submitGame}
-                    onNewGame={startNewGame}
-                    hintsRemaining={gameState.hintsRemaining}
-                    hintedCards={gameState.hintedCards}
-                    onUseHint={handleUseHint}
-                    level={gameState.level}
-                  />
-                </div>
+                <GameBoard
+                  gameState={gameState}
+                  onPieceMove={handlePieceMove}
+                  gameOver={gameState.gameOver}
+                  won={gameState.won}
+                  score={gameState.score}
+                  onSubmit={submitGame}
+                  onNewGame={startNewGame}
+                />
               ) : isStarting ? (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-2xl">
                   <Card className="aspect-square flex items-center justify-center border-primary/30">
@@ -400,12 +376,12 @@ export default function MemoryMatchPage() {
                       <div className="mb-8">
                         <h4 className="text-lg font-semibold mb-4">Select Difficulty</h4>
                         <div className="flex justify-center gap-4">
-                          {[1, 2, 3].map((level) => {
-                            const config = LEVEL_CONFIG[level as Level]
+                          {([1, 2, 3] as Level[]).map((level) => {
+                            const levelConfig = LEVEL_CONFIG[level]
                             return (
                               <button
                                 key={level}
-                                onClick={() => setSelectedLevel(level as Level)}
+                                onClick={() => setSelectedLevel(level)}
                                 className={`px-6 py-4 rounded-xl border-2 transition-all duration-200 ${
                                   selectedLevel === level
                                     ? 'bg-primary border-primary text-white scale-105'
@@ -413,8 +389,8 @@ export default function MemoryMatchPage() {
                                 }`}
                               >
                                 <div className="text-xl font-bold">Level {level}</div>
-                                <div className="text-sm opacity-80">{config.gridCols}x{config.gridRows} Grid</div>
-                                <div className="text-xs opacity-60">{config.pairsCount} Pairs</div>
+                                <div className="text-sm opacity-80">{levelConfig.rows}x{levelConfig.cols} Grid</div>
+                                <div className="text-xs opacity-60">{levelConfig.pieces} Pieces</div>
                               </button>
                             )
                           })}
@@ -444,25 +420,16 @@ export default function MemoryMatchPage() {
               </Card>
 
               <Card className="p-6 border-accent/30">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">MATCHED PAIRS</h3>
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">PIECES PLACED</h3>
                 <div className="text-5xl text-accent">
-                  {gameState?.matchedPairs || 0} / {gameState ? LEVEL_CONFIG[gameState.level].pairsCount : '-'}
+                  {placedPieces} / {config.pieces}
                 </div>
               </Card>
 
               <Card className="p-6 border-success/30">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">ATTEMPTS LEFT</h3>
-                <div className={`text-5xl ${attemptsRemaining <= 10 ? 'text-destructive' : 'text-success'}`}>
-                  {attemptsRemaining}
-                </div>
-              </Card>
-
-              <Card className="p-6 border-yellow-500/30">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">HINTS LEFT</h3>
-                <div className="flex items-center gap-2">
-                  <div className="text-5xl text-yellow-500">
-                    {gameState?.hintsRemaining || 0}
-                  </div>
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">MOVES</h3>
+                <div className="text-5xl text-success">
+                  {gameState?.moves.length || 0}
                 </div>
               </Card>
 
@@ -481,8 +448,8 @@ export default function MemoryMatchPage() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Theme</span>
-                      <span className="font-medium capitalize">{gameState?.theme}</span>
+                      <span className="text-muted-foreground">Level</span>
+                      <span className="font-medium">{gameState?.level}</span>
                     </div>
                   </div>
                 </Card>
@@ -495,7 +462,7 @@ export default function MemoryMatchPage() {
       <HowToPlayModal
         isOpen={showHowToPlay}
         onClose={() => setShowHowToPlay(false)}
-        title="How to Play Memory Match"
+        title="How to Play Jigsaw Puzzle"
         onPlay={startNewGame}
       >
         <div className="space-y-4">
@@ -504,8 +471,12 @@ export default function MemoryMatchPage() {
               1
             </div>
             <div>
-              <strong className="text-foreground">Click cards to flip them</strong>
-              <p className="text-muted-foreground">Reveal the emoji hidden behind each card</p>
+              <strong className="text-foreground">Choose your difficulty</strong>
+              <p className="text-muted-foreground">
+                <strong className="text-green-500">Level 1</strong>: 3x3 grid (9 pieces, 1000 base pts)<br />
+                <strong className="text-yellow-500">Level 2</strong>: 4x4 grid (16 pieces, 2000 base pts)<br />
+                <strong className="text-red-500">Level 3</strong>: 5x5 grid (25 pieces, 3000 base pts)
+              </p>
             </div>
           </div>
 
@@ -514,12 +485,8 @@ export default function MemoryMatchPage() {
               2
             </div>
             <div>
-              <strong className="text-foreground">Choose your difficulty</strong>
-              <p className="text-muted-foreground">
-                <strong className="text-green-500">Level 1</strong>: 3x3 grid (4 pairs, 20 attempts, 50 pts/match)<br />
-                <strong className="text-yellow-500">Level 2</strong>: 4x4 grid (8 pairs, 35 attempts, 100 pts/match)<br />
-                <strong className="text-red-500">Level 3</strong>: 6x6 grid (18 pairs, 50 attempts, 150 pts/match)
-              </p>
+              <strong className="text-foreground">Drag pieces from the tray</strong>
+              <p className="text-muted-foreground">Pieces start scrambled in the tray below the puzzle board</p>
             </div>
           </div>
 
@@ -528,8 +495,8 @@ export default function MemoryMatchPage() {
               3
             </div>
             <div>
-              <strong className="text-foreground">Match pairs to score</strong>
-              <p className="text-muted-foreground">Find two cards with the same emoji. Base points per match depend on your chosen level!</p>
+              <strong className="text-foreground">Drop pieces in correct positions</strong>
+              <p className="text-muted-foreground">Pieces will highlight green when placed correctly and lock in place</p>
             </div>
           </div>
 
@@ -540,9 +507,9 @@ export default function MemoryMatchPage() {
             <div>
               <strong className="text-foreground">Scoring system</strong>
               <p className="text-muted-foreground">
-                Base: <strong className="text-primary">Level-based pts</strong> per pair<br />
-                Time bonus: up to 50 pts (faster is better)<br />
-                Attempt bonus: 2 pts per remaining attempt
+                Base: <strong className="text-primary">Level-based pts</strong><br />
+                Time bonus: up to 500 pts (faster is better)<br />
+                Move bonus: fewer moves = higher score
               </p>
             </div>
           </div>
@@ -552,28 +519,18 @@ export default function MemoryMatchPage() {
               5
             </div>
             <div>
-              <strong className="text-foreground">Win condition</strong>
-              <p className="text-muted-foreground">Match all pairs before running out of attempts. Submit your score on-chain to compete!</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 flex items-center justify-center rounded bg-primary/20 text-primary font-bold flex-shrink-0 mt-0.5">
-              6
-            </div>
-            <div>
-              <strong className="text-foreground">Hint system</strong>
-              <p className="text-muted-foreground">Get <strong className="text-yellow-500">5 hints</strong> per game. Each hint reveals 5 random unmatched cards for 3 seconds</p>
+              <strong className="text-foreground">Complete the puzzle</strong>
+              <p className="text-muted-foreground">Place all pieces correctly to finish. Submit your score on-chain to compete!</p>
             </div>
           </div>
 
           <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
             <h3 className="font-semibold mb-3">Game Features</h3>
             <ul className="space-y-2 text-sm text-muted-foreground list-disc list-inside">
-              <li>Random themes each game (animals, fruits, nature, space, food)</li>
-              <li>Time bonuses reward faster completion</li>
-              <li>Attempt bonuses reward fewer mistakes</li>
-              <li>5 hints to help you when stuck</li>
+              <li>Real jigsaw puzzle piece shapes with tabs and blanks</li>
+              <li>Smooth drag and drop mechanics</li>
+              <li>Beautiful gradient patterns</li>
+              <li>Pieces lock when placed correctly</li>
             </ul>
           </div>
         </div>
