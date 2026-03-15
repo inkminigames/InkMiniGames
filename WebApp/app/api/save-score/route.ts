@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createPublicClient, http } from 'viem'
-import { inkSepolia } from '@/lib/web3/chains'
+import { ink, inkSepolia } from '@/lib/web3/chains'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
@@ -14,7 +14,7 @@ if (!supabaseSecretKey) {
 const supabaseAdmin = createClient(supabaseUrl, supabaseSecretKey)
 
 const publicClient = createPublicClient({
-  chain: inkSepolia,
+  chain: process.env.NEXT_PUBLIC_ENABLE_MAINNET === 'true' ? ink : inkSepolia,
   transport: http()
 })
 
