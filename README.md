@@ -68,7 +68,7 @@ Solve realistic jigsaw puzzles with interlocking pieces
 1. **Connect Wallet**: Sign in with your EVM wallet on Ink
 2. **Start Game**: Pay entry fee to initialize game on-chain
 3. **Play**: All gameplay happens client-side (no gas during play)
-4. **Submit Score**: When finished, submit score on-chain for leaderboard
+4. **Submit Score**: When finished, submit actions and score on-chain for leaderboard
 
 ## Adding Puzzle Images
 
