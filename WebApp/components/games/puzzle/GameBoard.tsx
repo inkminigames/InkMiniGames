@@ -124,6 +124,7 @@ export function GameBoard({
             className="grid gap-2 p-4 bg-muted/40 border-4 border-muted-foreground/30 min-h-[400px] rounded-lg shadow-inner"
             style={{
               gridTemplateColumns: `repeat(${config.cols}, minmax(0, 1fr))`,
+              overflow: 'visible',
             }}
           >
             {Array.from({ length: trayRows}).map((_, trayRow) =>
@@ -136,6 +137,9 @@ export function GameBoard({
                   <div
                     key={`tray-${row}-${col}`}
                     className="relative aspect-square"
+                    style={{ overflow: 'visible' }}
+                    onDragOver={(e) => { if (!piece && draggedPiece) e.preventDefault() }}
+                    onDrop={() => handleDrop(row, col)}
                   >
                     {piece && (
                       <PuzzlePieceComponent
