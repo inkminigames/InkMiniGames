@@ -124,7 +124,6 @@ export function GameBoard({
             className="grid gap-2 p-4 bg-muted/40 border-4 border-muted-foreground/30 min-h-[400px] rounded-lg shadow-inner"
             style={{
               gridTemplateColumns: `repeat(${config.cols}, minmax(0, 1fr))`,
-              overflow: 'visible',
             }}
           >
             {Array.from({ length: trayRows}).map((_, trayRow) =>
@@ -137,9 +136,6 @@ export function GameBoard({
                   <div
                     key={`tray-${row}-${col}`}
                     className="relative aspect-square"
-                    style={{ overflow: 'visible' }}
-                    onDragOver={(e) => { if (!piece && draggedPiece) e.preventDefault() }}
-                    onDrop={() => handleDrop(row, col)}
                   >
                     {piece && (
                       <PuzzlePieceComponent
@@ -234,10 +230,15 @@ function PuzzlePieceComponent({
   const hasLeftEdge = col === 0
   const hasRightEdge = col === config.cols - 1
 
-  const tabOutTop = !hasTopEdge && ((row - 1) % 2 === 1)
+  // For each shared edge, the tab direction is determined by the edge index.
+  // The piece that "owns" the tab sticks out; its neighbor sticks in.
+  // Horizontal edges are indexed by row (edge between row r and r+1 = edge index r).
+  // Vertical edges are indexed by col (edge between col c and c+1 = edge index c).
+  // Even edge index → tab goes DOWN/RIGHT; odd → tab goes UP/LEFT.
   const tabOutBottom = !hasBottomEdge && (row % 2 === 0)
-  const tabOutLeft = !hasLeftEdge && ((col - 1) % 2 === 1)
-  const tabOutRight = !hasRightEdge && (col % 2 === 0)
+  const tabOutTop    = !hasTopEdge    && ((row - 1) % 2 !== 0) // opposite of the bottom of row above
+  const tabOutRight  = !hasRightEdge  && (col % 2 === 0)
+  const tabOutLeft   = !hasLeftEdge   && ((col - 1) % 2 !== 0) // opposite of the right of col to left
 
   const imageUrl = gameState.imageUrl || '/puzzle-images/1.png'
 
@@ -282,6 +283,7 @@ function PuzzlePieceComponent({
               tabOutRight={tabOutRight}
               tabOutBottom={tabOutBottom}
               tabOutLeft={tabOutLeft}
+              fill="black"
             />
           </clipPath>
 
