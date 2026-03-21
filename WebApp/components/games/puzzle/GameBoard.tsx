@@ -385,81 +385,93 @@ function JigsawPath({
   strokeWidth,
   fill,
 }: JigsawPathProps) {
+  const s = 15    // tab size
+  const n = 0.4   // neck ratio
+
+  // Pre-compute all values as plain numbers to avoid SVG path parsing issues
+  const x1 = 50 - s        // 35  - tab start
+  const x2 = 50 - s * n    // 44  - neck control
+  const x3 = 50 - s * 0.6  // 41  - tab shoulder
+  const x4 = 50 - s * 0.3  // 45.5 - tab tip side
+  const x5 = 50 + s * 0.3  // 54.5
+  const x6 = 50 + s * 0.6  // 59
+  const x7 = 50 + s * n    // 56
+  const x8 = 50 + s        // 65  - tab end
+
+  const yn1 = -(s * 0.3)   // -4.5
+  const yn2 = -(s * 0.7)   // -10.5
+  const yn3 = -(s * 1.2)   // -18
+  const yn4 = -(s * 1.5)   // -22.5
+  const yp1 = s * 0.3      // 4.5
+  const yp2 = s * 0.7      // 10.5
+  const yp3 = s * 1.2      // 18
+  const yp4 = s * 1.5      // 22.5
+
+  const rx1 = 100 + s * 0.3  // 104.5
+  const rx2 = 100 + s * 0.7  // 110.5
+  const rx3 = 100 + s * 1.2  // 118
+  const rx4 = 100 + s * 1.5  // 122.5
+  const lx1 = 100 - s * 0.3  // 95.5
+  const lx2 = 100 - s * 0.7  // 89.5
+  const lx3 = 100 - s * 1.2  // 82
+  const lx4 = 100 - s * 1.5  // 77.5
+
+  const by1 = 100 + s * 0.3  // 104.5
+  const by2 = 100 + s * 0.7  // 110.5
+  const by3 = 100 + s * 1.2  // 118
+  const by4 = 100 + s * 1.5  // 122.5
+  const ty1 = 100 - s * 0.3  // 95.5
+  const ty2 = 100 - s * 0.7  // 89.5
+  const ty3 = 100 - s * 1.2  // 82
+  const ty4 = 100 - s * 1.5  // 77.5
+
+  const lnx1 = -(s * 0.3)   // -4.5
+  const lnx2 = -(s * 0.7)   // -10.5
+  const lnx3 = -(s * 1.2)   // -18
+  const lnx4 = -(s * 1.5)   // -22.5
+  const lpx1 = s * 0.3      // 4.5
+  const lpx2 = s * 0.7      // 10.5
+  const lpx3 = s * 1.2      // 18
+  const lpx4 = s * 1.5      // 22.5
+
+  const p = (x: number, y: number) => `${x},${y}`
+
   let path = ''
 
-  const tabSize = 15
-  const neckRatio = 0.4
-
+  // Top edge
   if (hasTopEdge) {
-    path += 'M 0,0 L 100,0'
+    path += `M ${p(0,0)} L ${p(100,0)}`
+  } else if (tabOutTop) {
+    path += `M ${p(0,0)} L ${p(x1,0)} C ${p(x2,yn1)} ${p(x2,yn2)} ${p(x3,yn3)} C ${p(x4,yn4)} ${p(x5,yn4)} ${p(x6,yn3)} C ${p(x7,yn2)} ${p(x7,yn1)} ${p(x8,0)} L ${p(100,0)}`
   } else {
-    if (tabOutTop) {
-      path += `M 0,0 L ${50 - tabSize},0`
-      path += ` C ${50 - tabSize * neckRatio},-${tabSize * 0.3} ${50 - tabSize * neckRatio},-${tabSize * 0.7} ${50 - tabSize * 0.6},-${tabSize * 1.2}`
-      path += ` C ${50 - tabSize * 0.3},-${tabSize * 1.5} ${50 + tabSize * 0.3},-${tabSize * 1.5} ${50 + tabSize * 0.6},-${tabSize * 1.2}`
-      path += ` C ${50 + tabSize * neckRatio},-${tabSize * 0.7} ${50 + tabSize * neckRatio},-${tabSize * 0.3} ${50 + tabSize},0`
-      path += ` L 100,0`
-    } else {
-      path += `M 0,0 L ${50 - tabSize},0`
-      path += ` C ${50 - tabSize * neckRatio},${tabSize * 0.3} ${50 - tabSize * neckRatio},${tabSize * 0.7} ${50 - tabSize * 0.6},${tabSize * 1.2}`
-      path += ` C ${50 - tabSize * 0.3},${tabSize * 1.5} ${50 + tabSize * 0.3},${tabSize * 1.5} ${50 + tabSize * 0.6},${tabSize * 1.2}`
-      path += ` C ${50 + tabSize * neckRatio},${tabSize * 0.7} ${50 + tabSize * neckRatio},${tabSize * 0.3} ${50 + tabSize},0`
-      path += ` L 100,0`
-    }
+    path += `M ${p(0,0)} L ${p(x1,0)} C ${p(x2,yp1)} ${p(x2,yp2)} ${p(x3,yp3)} C ${p(x4,yp4)} ${p(x5,yp4)} ${p(x6,yp3)} C ${p(x7,yp2)} ${p(x7,yp1)} ${p(x8,0)} L ${p(100,0)}`
   }
 
+  // Right edge
   if (hasRightEdge) {
-    path += ' L 100,100'
+    path += ` L ${p(100,100)}`
+  } else if (tabOutRight) {
+    path += ` L ${p(100,x1)} C ${p(rx1,x2)} ${p(rx2,x2)} ${p(rx3,x3)} C ${p(rx4,x4)} ${p(rx4,x5)} ${p(rx3,x6)} C ${p(rx2,x7)} ${p(rx1,x7)} ${p(100,x8)} L ${p(100,100)}`
   } else {
-    if (tabOutRight) {
-      path += ` L 100,${50 - tabSize}`
-      path += ` C ${100 + tabSize * 0.3},${50 - tabSize * neckRatio} ${100 + tabSize * 0.7},${50 - tabSize * neckRatio} ${100 + tabSize * 1.2},${50 - tabSize * 0.6}`
-      path += ` C ${100 + tabSize * 1.5},${50 - tabSize * 0.3} ${100 + tabSize * 1.5},${50 + tabSize * 0.3} ${100 + tabSize * 1.2},${50 + tabSize * 0.6}`
-      path += ` C ${100 + tabSize * 0.7},${50 + tabSize * neckRatio} ${100 + tabSize * 0.3},${50 + tabSize * neckRatio} 100,${50 + tabSize}`
-      path += ' L 100,100'
-    } else {
-      path += ` L 100,${50 - tabSize}`
-      path += ` C ${100 - tabSize * 0.3},${50 - tabSize * neckRatio} ${100 - tabSize * 0.7},${50 - tabSize * neckRatio} ${100 - tabSize * 1.2},${50 - tabSize * 0.6}`
-      path += ` C ${100 - tabSize * 1.5},${50 - tabSize * 0.3} ${100 - tabSize * 1.5},${50 + tabSize * 0.3} ${100 - tabSize * 1.2},${50 + tabSize * 0.6}`
-      path += ` C ${100 - tabSize * 0.7},${50 + tabSize * neckRatio} ${100 - tabSize * 0.3},${50 + tabSize * neckRatio} 100,${50 + tabSize}`
-      path += ' L 100,100'
-    }
+    path += ` L ${p(100,x1)} C ${p(lx1,x2)} ${p(lx2,x2)} ${p(lx3,x3)} C ${p(lx4,x4)} ${p(lx4,x5)} ${p(lx3,x6)} C ${p(lx2,x7)} ${p(lx1,x7)} ${p(100,x8)} L ${p(100,100)}`
   }
 
+  // Bottom edge (drawn right to left)
   if (hasBottomEdge) {
-    path += ' L 0,100'
+    path += ` L ${p(0,100)}`
+  } else if (tabOutBottom) {
+    path += ` L ${p(x8,100)} C ${p(x7,by1)} ${p(x7,by2)} ${p(x6,by3)} C ${p(x5,by4)} ${p(x4,by4)} ${p(x3,by3)} C ${p(x2,by2)} ${p(x2,by1)} ${p(x1,100)} L ${p(0,100)}`
   } else {
-    if (tabOutBottom) {
-      path += ` L ${50 + tabSize},100`
-      path += ` C ${50 + tabSize * neckRatio},${100 + tabSize * 0.3} ${50 + tabSize * neckRatio},${100 + tabSize * 0.7} ${50 + tabSize * 0.6},${100 + tabSize * 1.2}`
-      path += ` C ${50 + tabSize * 0.3},${100 + tabSize * 1.5} ${50 - tabSize * 0.3},${100 + tabSize * 1.5} ${50 - tabSize * 0.6},${100 + tabSize * 1.2}`
-      path += ` C ${50 - tabSize * neckRatio},${100 + tabSize * 0.7} ${50 - tabSize * neckRatio},${100 + tabSize * 0.3} ${50 - tabSize},100`
-      path += ' L 0,100'
-    } else {
-      path += ` L ${50 + tabSize},100`
-      path += ` C ${50 + tabSize * neckRatio},${100 - tabSize * 0.3} ${50 + tabSize * neckRatio},${100 - tabSize * 0.7} ${50 + tabSize * 0.6},${100 - tabSize * 1.2}`
-      path += ` C ${50 + tabSize * 0.3},${100 - tabSize * 1.5} ${50 - tabSize * 0.3},${100 - tabSize * 1.5} ${50 - tabSize * 0.6},${100 - tabSize * 1.2}`
-      path += ` C ${50 - tabSize * neckRatio},${100 - tabSize * 0.7} ${50 - tabSize * neckRatio},${100 - tabSize * 0.3} ${50 - tabSize},100`
-      path += ' L 0,100'
-    }
+    path += ` L ${p(x8,100)} C ${p(x7,ty1)} ${p(x7,ty2)} ${p(x6,ty3)} C ${p(x5,ty4)} ${p(x4,ty4)} ${p(x3,ty3)} C ${p(x2,ty2)} ${p(x2,ty1)} ${p(x1,100)} L ${p(0,100)}`
   }
 
+  // Left edge (drawn bottom to top)
   if (hasLeftEdge) {
-    path += ' L 0,0 Z'
+    path += ` L ${p(0,0)} Z`
+  } else if (tabOutLeft) {
+    path += ` L ${p(0,x8)} C ${p(lnx1,x7)} ${p(lnx2,x7)} ${p(lnx3,x6)} C ${p(lnx4,x5)} ${p(lnx4,x4)} ${p(lnx3,x3)} C ${p(lnx2,x2)} ${p(lnx1,x2)} ${p(0,x1)} L ${p(0,0)} Z`
   } else {
-    if (tabOutLeft) {
-      path += ` L 0,${50 + tabSize}`
-      path += ` C -${tabSize * 0.3},${50 + tabSize * neckRatio} -${tabSize * 0.7},${50 + tabSize * neckRatio} -${tabSize * 1.2},${50 + tabSize * 0.6}`
-      path += ` C -${tabSize * 1.5},${50 + tabSize * 0.3} -${tabSize * 1.5},${50 - tabSize * 0.3} -${tabSize * 1.2},${50 - tabSize * 0.6}`
-      path += ` C -${tabSize * 0.7},${50 - tabSize * neckRatio} -${tabSize * 0.3},${50 - tabSize * neckRatio} 0,${50 - tabSize}`
-      path += ' L 0,0 Z'
-    } else {
-      path += ` L 0,${50 + tabSize}`
-      path += ` C ${tabSize * 0.3},${50 + tabSize * neckRatio} ${tabSize * 0.7},${50 + tabSize * neckRatio} ${tabSize * 1.2},${50 + tabSize * 0.6}`
-      path += ` C ${tabSize * 1.5},${50 + tabSize * 0.3} ${tabSize * 1.5},${50 - tabSize * 0.3} ${tabSize * 1.2},${50 - tabSize * 0.6}`
-      path += ` C ${tabSize * 0.7},${50 - tabSize * neckRatio} ${tabSize * 0.3},${50 - tabSize * neckRatio} 0,${50 - tabSize}`
-      path += ' L 0,0 Z'
-    }
+    path += ` L ${p(0,x8)} C ${p(lpx1,x7)} ${p(lpx2,x7)} ${p(lpx3,x6)} C ${p(lpx4,x5)} ${p(lpx4,x4)} ${p(lpx3,x3)} C ${p(lpx2,x2)} ${p(lpx1,x2)} ${p(0,x1)} L ${p(0,0)} Z`
   }
 
   return (
