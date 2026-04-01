@@ -201,6 +201,38 @@ export default function LeaderboardPage() {
   )
 }
 
+function RankIcon({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M26 4L30.5 16H44L33.5 23.5L37.5 36L26 28.5L14.5 36L18.5 23.5L8 16H21.5L26 4Z" fill="#FFD700" stroke="#B8860B" strokeWidth="1.5" strokeLinejoin="round"/>
+        <rect x="18" y="40" width="16" height="5" rx="1" fill="#B8860B"/>
+        <rect x="16" y="45" width="20" height="3" rx="1" fill="#8B6914"/>
+      </svg>
+    )
+  }
+  if (rank === 2) {
+    return (
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="22" cy="20" r="14" fill="#C0C0C0" stroke="#909090" strokeWidth="1.5"/>
+        <circle cx="22" cy="20" r="10" fill="#D8D8D8" stroke="#A8A8A8" strokeWidth="1"/>
+        <text x="22" y="25" textAnchor="middle" fill="#606060" fontSize="12" fontWeight="700">2</text>
+        <rect x="15" y="35" width="14" height="4" rx="1" fill="#909090"/>
+        <rect x="13" y="39" width="18" height="3" rx="1" fill="#787878"/>
+      </svg>
+    )
+  }
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="22" cy="20" r="14" fill="#CD7F32" stroke="#8B5A1A" strokeWidth="1.5"/>
+      <circle cx="22" cy="20" r="10" fill="#D4915A" stroke="#A0622A" strokeWidth="1"/>
+      <text x="22" y="25" textAnchor="middle" fill="#5C2E00" fontSize="12" fontWeight="700">3</text>
+      <rect x="15" y="35" width="14" height="4" rx="1" fill="#8B5A1A"/>
+      <rect x="13" y="39" width="18" height="3" rx="1" fill="#7A4A10"/>
+    </svg>
+  )
+}
+
 function PodiumCard({
   entry,
   rank,
@@ -210,101 +242,75 @@ function PodiumCard({
   rank: number
   color: string
 }) {
-  const medals = ['', '🥇', '🥈', '🥉']
-  const heights = ['', 'h-64', 'h-48', 'h-48']
-  const glowColors = ['', 'shadow-yellow-500/50', 'shadow-gray-400/30', 'shadow-orange-600/30']
+  const glowColors = ['', 'shadow-yellow-500/40', 'shadow-gray-400/20', 'shadow-orange-600/20']
+  const borderColors = ['', 'border-yellow-500/60', 'border-gray-400/40', 'border-orange-500/40']
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 100, scale: 0.8 }}
+      initial={{ opacity: 0, y: 60, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{
-        delay: rank === 1 ? 0.3 : rank === 2 ? 0.15 : 0.45,
+        delay: rank === 1 ? 0.2 : rank === 2 ? 0.05 : 0.35,
         type: 'spring',
-        stiffness: 120,
-        damping: 15
+        stiffness: 100,
+        damping: 18
       }}
-      className={`${rank === 1 ? 'md:order-2' : rank === 2 ? 'md:order-1' : 'md:order-3'}`}
+      className={`${rank === 1 ? 'md:order-2' : rank === 2 ? 'md:order-1' : 'md:order-3'} relative`}
+      style={{ zIndex: rank === 1 ? 10 : 1 }}
     >
-      <motion.div
-        className="relative"
-        whileHover={{
-          scale: 1.05,
-          rotateY: 5,
-          transition: { duration: 0.3 }
-        }}
-        style={{ transformStyle: 'preserve-3d' }}
-      >
-        {rank === 1 && (
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-yellow-400/30 to-amber-600/30 rounded-t-xl blur-xl"
-            animate={{
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-        )}
+      {rank === 1 && (
+        <div className="absolute -inset-1 bg-gradient-to-br from-yellow-400/20 to-amber-600/20 rounded-xl blur-lg pointer-events-none" />
+      )}
 
-        <div className={`relative ${heights[rank]} bg-gradient-to-br ${color} rounded-t-xl flex items-end justify-center p-6 transition-all duration-300 ${rank === 1 ? `shadow-2xl ${glowColors[rank]}` : 'shadow-lg'}`}>
-          <div className="text-center w-full">
-            <motion.div
-              className={`text-7xl mb-4 ${rank === 1 ? 'scale-110' : ''}`}
-              animate={{
-                rotate: [0, -5, 5, -5, 0],
-                scale: rank === 1 ? [1.1, 1.15, 1.1] : [1, 1.05, 1]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatDelay: 3
-              }}
-            >
-              {medals[rank]}
-            </motion.div>
+      <div className={`relative bg-gradient-to-br ${color} rounded-xl border ${borderColors[rank]} shadow-xl ${rank === 1 ? `shadow-yellow-500/30` : glowColors[rank]} ${rank === 1 ? 'pt-8' : 'pt-6'} pb-6 px-5`}>
 
-            <div className="text-white/90 text-2xl mb-3">
-              #{rank}
-            </div>
+        {/* Rank icon */}
+        <div className="flex justify-center mb-4">
+          <RankIcon rank={rank} />
+        </div>
 
-            <div className="text-white/80 text-sm mb-4 font-mono">
-              {formatAddress(entry.wallet_address)}
-            </div>
+        {/* Rank number */}
+        <div className="text-center mb-1">
+          <span className="text-white text-xl font-mono tracking-tight">#{rank}</span>
+        </div>
 
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-3">
-              <div className="text-white/70 text-xs mb-1">Overall Best</div>
-              <div className="text-white text-3xl font-mono">
-                {entry.overall_best_score.toLocaleString()}
-              </div>
-            </div>
+        {/* Address */}
+        <div className="text-center mb-5">
+          <span className="text-white/90 text-sm font-mono bg-black/20 px-3 py-1 rounded-md">
+            {formatAddress(entry.wallet_address)}
+          </span>
+        </div>
 
-            <div className="space-y-2 text-sm">
-              {entry.game_scores.map((gameScore) => (
-                <div key={gameScore.game_type} className="bg-white/10 backdrop-blur-sm rounded-lg p-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="text-white/70 text-xs font-semibold">{formatGameType(gameScore.game_type)}</div>
-                    <div className="text-white/60 text-xs">{gameScore.games_played} games</div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="text-white/50 text-xs">Best: </span>
-                      <span className="text-white font-mono text-sm">{gameScore.best_score.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/50 text-xs">Avg: </span>
-                      <span className="text-white font-mono text-sm">{Math.round(gameScore.total_score / gameScore.games_played).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Overall best */}
+        <div className="bg-black/25 rounded-lg p-4 mb-4 text-center">
+          <div className="text-white/70 text-xs uppercase tracking-widest mb-1">Overall Best</div>
+          <div className="text-white text-3xl font-mono font-semibold tracking-tight">
+            {entry.overall_best_score.toLocaleString()}
           </div>
         </div>
-      </motion.div>
+
+        {/* Per-game scores */}
+        <div className="space-y-2">
+          {entry.game_scores.map((gameScore) => (
+            <div key={gameScore.game_type} className="bg-black/20 rounded-lg px-3 py-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-white text-xs font-semibold uppercase tracking-wide">{formatGameType(gameScore.game_type)}</span>
+                <span className="text-white/70 text-xs">{gameScore.games_played} games</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="text-white/60 text-xs">Best: </span>
+                  <span className="text-white font-mono text-sm">{gameScore.best_score.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-white/60 text-xs">Avg: </span>
+                  <span className="text-white font-mono text-sm">{Math.round(gameScore.total_score / gameScore.games_played).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </motion.div>
   )
 }
